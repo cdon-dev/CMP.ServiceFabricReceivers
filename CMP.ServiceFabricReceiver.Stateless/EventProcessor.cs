@@ -14,14 +14,6 @@ namespace ServiceFabricStatelessReceiver
 {
     public class EventProcessor : IEventProcessor
     {
-        private static readonly TimeSpan[] FailedDelaySteps =
-{
-            TimeSpan.FromSeconds(1),
-            TimeSpan.FromSeconds(10),
-            TimeSpan.FromMinutes(1),
-            TimeSpan.FromMinutes(10),
-            TimeSpan.FromHours(1)
-        };
 
         private readonly TelemetryClient _telemetryClient;
         private readonly ILogger _logger;
@@ -76,7 +68,5 @@ namespace ServiceFabricStatelessReceiver
                 Logging.Combine(_logger.LogInformation, _serviceEventSource),
                 Logging.Combine(_logger.LogError, (ex, m, p) => _serviceEventSource(m, p))
             );
-
-  
     }
 }
