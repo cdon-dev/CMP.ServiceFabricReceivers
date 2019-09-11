@@ -3,12 +3,12 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CMP.ServiceFabricReceiver.Stateful;
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.ServiceFabric.Services.Runtime;
 using Serilog;
 using Serilog.Extensions.Logging;
-using ServiceFabricReceiver;
 
 namespace Stateful1
 {

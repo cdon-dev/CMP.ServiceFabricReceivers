@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 using CMP.ServiceFabricReceiver.Common;
 
 
-namespace ServiceFabricReceiver
+namespace CMP.ServiceFabricReceiver.Stateful
 {
     public class EventProcessor : IEventProcessor
     {

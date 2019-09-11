@@ -1,4 +1,4 @@
-﻿namespace ServiceFabricStatelessReceiver
+﻿namespace CMP.ServiceFabricRecevier.Stateless
 {
     public class ReceiverOptions
     {

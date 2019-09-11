@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ServiceFabricStatelessReceiver
+namespace CMP.ServiceFabricRecevier.Stateless
 {
     public class EventProcessorFactory : IEventProcessorFactory
     {

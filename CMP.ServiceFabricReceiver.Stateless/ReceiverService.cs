@@ -9,7 +9,7 @@ using System.Fabric;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ServiceFabricStatelessReceiver
+namespace CMP.ServiceFabricRecevier.Stateless
 {
     public class ReceiverService : StatelessService
     {
