@@ -29,7 +29,9 @@ The approch and signature is the same in both cases, it only differs in servicet
                             ct => Task.CompletedTask
                    )).GetAwaiter().GetResult();
 
+The samples folder includes a publisher that just pushes test event to a given hub.
 
+There is also an service fabric application using the statful approch.
 
 
 
