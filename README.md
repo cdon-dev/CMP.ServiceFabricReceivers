@@ -8,7 +8,7 @@ One using Service Fabric's state for checkpointing (stateful) and one using Azur
 
 Both use EventProcessor libraries, stateful uses the Service fabric vesion (in preview) and the stateful uses the EventProcessor package.
 
-Se approch and signature is the same in both cases, it only differs in servicetype, configuration and the option type.
+The approch and signature is the same in both cases, it only differs in servicetype, configuration and the option type.
 
 ### Sample
 
