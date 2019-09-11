@@ -5,9 +5,9 @@
                      xmlns:xsd="http://www.w3.org/2001/XMLSchema"
                      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Parameters>
-    <Parameter Name="Stateful1_MinReplicaSetSize" DefaultValue="3" />
-    <Parameter Name="Stateful1_PartitionCount" DefaultValue="4" />
-    <Parameter Name="Stateful1_TargetReplicaSetSize" DefaultValue="3" />
+    <Parameter Name="Stateful1_MinReplicaSetSize" DefaultValue="1" />
+    <Parameter Name="Stateful1_PartitionCount" DefaultValue="2" />
+    <Parameter Name="Stateful1_TargetReplicaSetSize" DefaultValue="1" />
   </Parameters>
   <!-- Import the ServiceManifest from the ServicePackage. The ServiceManifestName and ServiceManifestVersion 
        should match the Name and Version attributes of the ServiceManifest element defined in the 
@@ -24,7 +24,7 @@
          The attribute ServiceTypeName below must match the name defined in the imported ServiceManifest.xml file. -->
     <Service Name="Stateful1" ServicePackageActivationMode="ExclusiveProcess">
       <StatefulService ServiceTypeName="Stateful1Type" TargetReplicaSetSize="[Stateful1_TargetReplicaSetSize]" MinReplicaSetSize="[Stateful1_MinReplicaSetSize]">
-        <UniformInt64Partition PartitionCount="[Stateful1_PartitionCount]" LowKey="0" HighKey="3" />
+        <UniformInt64Partition PartitionCount="[Stateful1_PartitionCount]" LowKey="0" HighKey="1" />
       </StatefulService>
     </Service>
   </DefaultServices>

@@ -4,13 +4,13 @@ using Microsoft.Azure.EventHubs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace CMP.ServiceFabricReceiver.Common
 {
-    public static class ProcessExtensions
+    public static class Extensions
     {
         public static async Task ProcessAsync(
             this IEnumerable<EventData> messages,
@@ -61,10 +61,24 @@ namespace CMP.ServiceFabricReceiver.Common
             }
         }
 
-        public static Action<string, object[]> Foo(params Action<string, object[]>[] f)
-            => f.Aggregate((l, r) => l);
+        public static Task SendAsync(this EventHubClient client, IEnumerable<IEvent> events)
+            => Task.WhenAll(events.ToBatches().Select(x => client.SendAsync(x)));
 
-        public static Action<Exception, string, object[]> Foo(params Action<Exception, string, object[]>[] f)
-            => f.Aggregate((l, r) => l);
+        public static string GetVersion(this Type type)
+            => type?.GetTypeInfo().Assembly.GetName().Version.ToString() ?? string.Empty;
+
+        public static void ForEach<T>(this IEnumerable<T> self, Action<T> f)
+        {
+            foreach (var item in self)
+            {
+                f(item);
+            }
+        }
+
+        public static T Tap<T>(this T self, Action<T> f)
+        {
+            f(self);
+            return self;
+        }
     }
 }

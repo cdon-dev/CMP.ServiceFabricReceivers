@@ -48,7 +48,7 @@ namespace CMP.ServiceFabricReceiver.Common
         }
     }
 
-    public static class Extensions
+    public static class BatchExtensions
     {
         public static IEnumerable<IReadOnlyCollection<T>> AsBatches<T>(this IEnumerable<T> source, int batchSize)
         {

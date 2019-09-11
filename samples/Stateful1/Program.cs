@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.ApplicationInsights;
@@ -18,8 +19,6 @@ namespace Stateful1
         /// </summary>
         private static void Main()
         {
-
-
             Log.Logger = new LoggerConfiguration()
                 .CreateLogger();
 
@@ -29,19 +28,19 @@ namespace Stateful1
             try
             {
                 ServiceRuntime.RegisterServiceAsync(
-                    "ProductReceiverType",
+                    "ReceiverServiceType",
                     context =>
-                        new ReceiverService(
+                        new SampleService(
                          context,
                          logger,
                          new TelemetryClient(TelemetryConfiguration.Active),
                          new ReceiverOptions()
                          {
                              ConnectionString = "",
-                             ConsumerGroup = ""
+                             ConsumerGroup = "sf"
                          },
                          ServiceEventSource.Current.Message,
-                         (events, ct) => Task.CompletedTask,
+                         (events, ct) => EventHandler.Handle(events.ToArray()),
                             ct => Task.CompletedTask
                    )).GetAwaiter().GetResult();
 
