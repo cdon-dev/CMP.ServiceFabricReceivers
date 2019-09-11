@@ -36,7 +36,7 @@ The samples folder includes a publisher that just pushes test event to a given h
 
 There is also an service fabric application using the stateful approch.
 
-*Note* - the sample show a sample service that inhrits the util service. It seems like service fabric want registered services in the regetring project.
+*Note* - the sample shows a sample service that inhrits the util service. It seems like service fabric wants registered service in the same project that runs register.
 
 
 
