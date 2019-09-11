@@ -6,7 +6,10 @@ Utils for consuming event hubs on service fabric.
 This project contains two util projects for consuming eventhubs in service fabric.
 One using Service Fabric's state for checkpointing (stateful) and one using Azure Storare for checkpointing (stateless).
 
-Both use EventProcessor libraries, stateful uses the Service fabric vesion (in preview) and the stateful uses the EventProcessor package.
+Both use EventProcessor libraries, stateful uses the [Service fabric vesion 
+in preview](https://www.nuget.org/packages/Microsoft.Azure.EventHubs.ServiceFabricProcessor/)
+
+(in preview) and the stateful uses the  [EventProcessor package](https://www.nuget.org/packages/Microsoft.Azure.EventHubs.Processor/).
 
 The approch and signature is the same in both cases, it only differs in servicetype, configuration and the option type.
 
@@ -32,6 +35,8 @@ The approch and signature is the same in both cases, it only differs in servicet
 The samples folder includes a publisher that just pushes test event to a given hub.
 
 There is also an service fabric application using the stateful approch.
+
+*Note* - the sample show a sample service that inhrits the util service. It seems like service fabric want registered services in the regetring project.
 
 
 
