@@ -1,11 +1,8 @@
-﻿using Microsoft.ApplicationInsights;
-using Microsoft.ApplicationInsights.DataContracts;
-using Microsoft.Azure.EventHubs;
+﻿using Microsoft.Azure.EventHubs;
 using Microsoft.Azure.EventHubs.ServiceFabricProcessor;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CMP.ServiceFabricReceiver.Common;
@@ -15,19 +12,19 @@ namespace CMP.ServiceFabricReceiver.Stateful
 {
     public class EventProcessor : IEventProcessor
     {
-        private readonly TelemetryClient _telemetryClient;
+        private readonly Func<IDisposable> _operationLogger;
         private readonly ILogger _logger;
         private readonly Action<string, object[]> _serviceEventSource;
         private readonly Func<IReadOnlyCollection<EventData>, CancellationToken, Task> _handleEvents;
 
         public EventProcessor(
-            TelemetryClient telemetryClient,
+            Func<IDisposable> operationLogger,
             ILogger logger,
             Action<string, object[]> serviceEventSource,
             Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents
             )
         {
-            _telemetryClient = telemetryClient;
+            _operationLogger = operationLogger;
             _logger = logger;
             _serviceEventSource = serviceEventSource;
             _handleEvents = handleEvents;
@@ -57,7 +54,7 @@ namespace CMP.ServiceFabricReceiver.Stateful
         public override Task ProcessEventsAsync(CancellationToken cancellationToken, PartitionContext context, IEnumerable<EventData> eventDatas)
          => eventDatas.ProcessAsync(
              cancellationToken,
-             _telemetryClient,
+             _operationLogger,
              context.PartitionId,
              context.CheckpointAsync,
              _handleEvents,

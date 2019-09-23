@@ -1,4 +1,6 @@
-﻿using Microsoft.ApplicationInsights;
+﻿using CMP.ServiceFabricReceiver.Common;
+using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.Azure.EventHubs;
 using Microsoft.Azure.EventHubs.Processor;
 using Microsoft.Extensions.Logging;
@@ -59,7 +61,11 @@ namespace CMP.ServiceFabricRecevier.Stateless
                 await _switch(cancellationToken);
 
                 await _host.RegisterEventProcessorFactoryAsync(
-                    new EventProcessorFactory(_telemetryClient, _logger, cancellationToken, _serviceEventSource, _handleEvents));
+                    new EventProcessorFactory(
+                         () => _options.UseOperationLogging ?
+                         (IDisposable)_telemetryClient.StartOperation<RequestTelemetry>("ProcessEvents") :
+                         DisposableAction.Empty,
+                    _logger, cancellationToken, _serviceEventSource, _handleEvents));
             }
             catch (Exception e) when (cancellationToken.IsCancellationRequested)
             {

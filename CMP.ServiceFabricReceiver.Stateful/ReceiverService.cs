@@ -1,4 +1,6 @@
-﻿using Microsoft.ApplicationInsights;
+﻿using CMP.ServiceFabricReceiver.Common;
+using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.Azure.EventHubs;
 using Microsoft.Azure.EventHubs.ServiceFabricProcessor;
 using Microsoft.Extensions.Logging;
@@ -97,7 +99,11 @@ namespace CMP.ServiceFabricReceiver.Stateful
                     Context.PartitionId,
                     StateManager,
                     Partition,
-                    new EventProcessor(_telemetryClient, _logger, _serviceEventSource, _handleEvents),
+                    new EventProcessor(
+                        () => _options.UseOperationLogging ? 
+                         (IDisposable)_telemetryClient.StartOperation<RequestTelemetry>("ProcessEvents") :
+                         DisposableAction.Empty,
+                        _logger, _serviceEventSource, _handleEvents),
                     _options.ConnectionString,
                     _options.ConsumerGroup,
                     options);

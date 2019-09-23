@@ -3,7 +3,7 @@
     public class ReceiverOptions
     {
         public string ConnectionString { get; set; }
-
         public string ConsumerGroup { get; set; }
+        public bool UseOperationLogging { get; set; }
     }
 }

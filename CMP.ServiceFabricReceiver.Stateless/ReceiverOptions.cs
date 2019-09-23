@@ -7,5 +7,6 @@
         public string EventHubConnectionString { get; set; }
         public string StorageConnectionString { get; set; }
         public string LeaseContainerName { get; set; }
+        public bool UseOperationLogging { get; set; }
     }
 }

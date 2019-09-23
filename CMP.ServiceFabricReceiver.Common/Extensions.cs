@@ -1,6 +1,4 @@
-﻿using Microsoft.ApplicationInsights;
-using Microsoft.ApplicationInsights.DataContracts;
-using Microsoft.Azure.EventHubs;
+﻿using Microsoft.Azure.EventHubs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +13,7 @@ namespace CMP.ServiceFabricReceiver.Common
         public static async Task ProcessAsync(
             this IEnumerable<EventData> messages,
             CancellationToken cancellationToken,
-            TelemetryClient telemetryClient,
+            Func<IDisposable> operationLogger,
             string partitionId,
             Func<EventData, Task> checkpoint,
             Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents,
@@ -31,7 +29,7 @@ namespace CMP.ServiceFabricReceiver.Common
             {
                 try
                 {
-                    using (telemetryClient.StartOperation<RequestTelemetry>("ProcessEvents"))
+                    using (operationLogger())
                     {
                         const string name = "EventProcessor";
                         logDebug($"{name}.ProcessEventsAsync for {partitionId} got {events.Count()} events",

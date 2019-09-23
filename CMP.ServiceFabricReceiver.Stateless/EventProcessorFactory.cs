@@ -12,26 +12,26 @@ namespace CMP.ServiceFabricRecevier.Stateless
     public class EventProcessorFactory : IEventProcessorFactory
     {
         private readonly Func<IReadOnlyCollection<EventData>, CancellationToken, Task> _handleEvents;
-        private readonly TelemetryClient _telemetryClient;
+        private readonly Func<IDisposable> _operationLogger;
         private readonly ILogger _logger;
         private readonly CancellationToken _cancellationToken;
         private readonly Action<string, object[]> _serviceEventSource;
 
         public EventProcessorFactory(
-            TelemetryClient telemetryClient,
+            Func<IDisposable> operationLogger,
             ILogger logger,
             CancellationToken cancellationToken,
             Action<string, object[]> serviceEventSource,
             Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents)
         {
             _handleEvents = handleEvents;
-            _telemetryClient = telemetryClient;
+            _operationLogger = operationLogger;
             _logger = logger;
             _cancellationToken = cancellationToken;
             _serviceEventSource = serviceEventSource;
         }
 
         public IEventProcessor CreateEventProcessor(PartitionContext context)
-         => new EventProcessor(_telemetryClient, _logger, _cancellationToken, _serviceEventSource, _handleEvents);
+         => new EventProcessor(_operationLogger, _logger, _cancellationToken, _serviceEventSource, _handleEvents);
     }
 }

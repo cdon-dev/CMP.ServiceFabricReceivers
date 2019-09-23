@@ -14,21 +14,21 @@ namespace CMP.ServiceFabricRecevier.Stateless
 {
     public class EventProcessor : IEventProcessor
     {
-
-        private readonly TelemetryClient _telemetryClient;
+        private readonly Func<IDisposable> _operationLogger;
         private readonly ILogger _logger;
         private readonly CancellationToken _cancellationToken;
         private readonly Action<string, object[]> _serviceEventSource;
         private readonly Func<IReadOnlyCollection<EventData>, CancellationToken, Task> _handleEvents;
 
+
         public EventProcessor(
-            TelemetryClient telemetryClient,
+            Func<IDisposable> operationLogger,
             ILogger logger,
             CancellationToken cancellationToken,
             Action<string, object[]> serviceEventSource,
             Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents)
         {
-            this._telemetryClient = telemetryClient;
+            this._operationLogger = operationLogger;
             this._logger = logger;
             this._cancellationToken = cancellationToken;
             this._serviceEventSource = serviceEventSource;
@@ -60,7 +60,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
         public Task ProcessEventsAsync(PartitionContext context, IEnumerable<EventData> messages)
             => messages.ProcessAsync(
                 _cancellationToken,
-                _telemetryClient,
+                _operationLogger,
                 context.PartitionId,
                 context.CheckpointAsync,
                 _handleEvents,
