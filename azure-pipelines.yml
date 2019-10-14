@@ -32,4 +32,3 @@ steps:
     packagesToPack: '**/*.csproj'
     includesymbols: true
     includesource: true
-    versioningScheme: 'byBuildNumber'
