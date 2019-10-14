@@ -1,6 +1,4 @@
-﻿using CMP.ServiceFabricReceiver.Common;
-using Microsoft.Azure.EventHubs;
-using System.Collections.Generic;
+﻿using Microsoft.Azure.EventHubs;
 using System.Threading.Tasks;
 
 namespace Stateful1

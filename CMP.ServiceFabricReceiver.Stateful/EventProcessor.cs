@@ -58,7 +58,7 @@ namespace CMP.ServiceFabricReceiver.Stateful
              context.PartitionId,
              context.CheckpointAsync,
              _handleEvents,
-             Logging.Combine(_logger.LogDebug, _serviceEventSource),
+             _logger.LogDebug,
              Logging.Combine(_logger.LogInformation, _serviceEventSource),
              Logging.Combine(_logger.LogError, (ex, m, p) => _serviceEventSource(m, p))
              );

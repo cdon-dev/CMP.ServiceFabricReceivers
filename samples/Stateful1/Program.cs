@@ -20,6 +20,8 @@ namespace Stateful1
         private static void Main()
         {
             Log.Logger = new LoggerConfiguration()
+                .WriteTo.ApplicationInsights(TelemetryConfiguration.Active, TelemetryConverter.Traces, Serilog.Events.LogEventLevel.Debug)
+                .MinimumLevel.Debug()
                 .CreateLogger();
 
             var logger = new SerilogLoggerProvider(Log.Logger, true)
@@ -40,8 +42,11 @@ namespace Stateful1
                              ConsumerGroup = "sf"
                          },
                          ServiceEventSource.Current.Message,
-                         (events, ct) => EventHandler.Handle(events.ToArray()),
-                            ct => Task.CompletedTask
+                         async (events, ct) => {
+                             ServiceEventSource.Current.Message($"Handle events got {events.Count()} events.");
+                             await EventHandler.Handle(events.ToArray());
+                         },
+                         ct => Task.CompletedTask
                    )).GetAwaiter().GetResult();
 
 

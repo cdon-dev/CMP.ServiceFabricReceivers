@@ -84,6 +84,8 @@ namespace CMP.ServiceFabricReceiver.Stateful
 
         protected override async Task RunAsync(CancellationToken cancellationToken)
         {
+            cancellationToken.Register(() => _logger.LogInformation($"{nameof(RunAsync)} is being cancelled"));
+
             try
             {
                 await Execution
