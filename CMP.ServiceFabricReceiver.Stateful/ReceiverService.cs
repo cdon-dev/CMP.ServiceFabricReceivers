@@ -76,59 +76,64 @@ namespace CMP.ServiceFabricReceiver.Stateful
             return base.OnChangeRoleAsync(newRole, cancellationToken);
         }
 
+        protected override void OnAbort()
+        {
+            _logger.LogInformation(nameof(OnAbort));
+            base.OnAbort();
+        }
+
         protected override async Task RunAsync(CancellationToken cancellationToken)
         {
             try
             {
-                await _switch(cancellationToken);
+                await Execution
+                    .ExecuteAsync(cancellationToken,
+                    _logger, _serviceEventSource,
+                    nameof(ReceiverService), Context.PartitionId.ToString(),
+                    async ct =>
+                    {
+                        await _switch(cancellationToken);
 
-                cancellationToken.ThrowIfCancellationRequested();
+                        cancellationToken.ThrowIfCancellationRequested();
 
-                var options = new EventProcessorOptions
-                {
-                    OnShutdown = OnShutdown,
-                    MaxBatchSize = MaxMessageCount,
-                    PrefetchCount = MaxMessageCount,
-                    InitialPositionProvider = s => EventPosition.FromStart()
-                };
+                        var options = new EventProcessorOptions
+                        {
+                            OnShutdown = OnShutdown,
+                            MaxBatchSize = MaxMessageCount,
+                            PrefetchCount = MaxMessageCount,
+                            InitialPositionProvider = s => EventPosition.FromStart()
+                        };
 
-                _logger.LogInformation("Create ServiceFabricProcessor with {ConsumerGroup}", _options.ConsumerGroup);
+                        _logger.LogInformation("Create ServiceFabricProcessor with {ConsumerGroup}", _options.ConsumerGroup);
 
-                var processorService = new ServiceFabricProcessor(
-                    Context.ServiceName,
-                    Context.PartitionId,
-                    StateManager,
-                    Partition,
-                    new EventProcessor(
-                        () => _options.UseOperationLogging ? 
-                         (IDisposable)_telemetryClient.StartOperation<RequestTelemetry>("ProcessEvents") :
-                         DisposableAction.Empty,
-                        _logger, _serviceEventSource, _handleEvents),
-                    _options.ConnectionString,
-                    _options.ConsumerGroup,
-                    options);
+                        var processorService = new ServiceFabricProcessor(
+                            Context.ServiceName,
+                            Context.PartitionId,
+                            StateManager,
+                            Partition,
+                            CreateProcessor(_options, _telemetryClient, _logger, _serviceEventSource, _handleEvents),
+                            _options.ConnectionString,
+                            _options.ConsumerGroup,
+                            options);
 
-                await processorService.RunAsync(cancellationToken);
+                        await processorService.RunAsync(cancellationToken);
+                    });
             }
-            catch (Exception e) when (cancellationToken.IsCancellationRequested)
+            catch (FabricTransientException e)
             {
-                if (e is OperationCanceledException)
-                {
-                    _logger.LogError(e, nameof(ReceiverService) + "RunAsync canceled. RunAsync for {PartitionId}", Context.PartitionId);
-                    _serviceEventSource($"{nameof(ReceiverService)}.RunAsync for {Context.PartitionId} error {e}", new object[0]);
-                    throw;
-                }
-
-                _logger.LogError(e, nameof(ReceiverService) + "Exception during shutdown. Exception of unexpected type .RunAsync for {PartitionId}", Context.PartitionId);
-                _serviceEventSource($"{nameof(ReceiverService)}.RunAsync for {Context.PartitionId} error {e}", new object[0]);
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, nameof(ReceiverService) + ".RunAsync for {PartitionId}", Context.PartitionId);
-                _serviceEventSource($"{nameof(ReceiverService)}.RunAsync for {Context.PartitionId} error {e}", new object[0]);
-                throw;
+                _logger.LogError(e, nameof(ReceiverService) + "Exception .RunAsync for {PartitionId}", Context.PartitionId);
             }
         }
+
+        public virtual EventProcessor CreateProcessor(
+            ReceiverOptions options, 
+            TelemetryClient telemetryClient,
+            ILogger logger,
+            Action<string, object[]> serviceEventSource,
+            Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents)
+            => new EventProcessor(() => options.UseOperationLogging ?
+                                    (IDisposable)telemetryClient.StartOperation<RequestTelemetry>("ProcessEvents") :
+                                    DisposableAction.Empty,
+                                    logger, serviceEventSource, handleEvents);
     }
 }

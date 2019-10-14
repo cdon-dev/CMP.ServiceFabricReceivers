@@ -54,37 +54,33 @@ namespace CMP.ServiceFabricRecevier.Stateless
             return base.OnOpenAsync(cancellationToken);
         }
 
+        protected override void OnAbort()
+        {
+            _logger.LogInformation(nameof(OnAbort));
+            base.OnAbort();
+        }
+
         protected override async Task RunAsync(CancellationToken cancellationToken)
         {
             try
             {
-                await _switch(cancellationToken);
-
-                await _host.RegisterEventProcessorFactoryAsync(
-                    new EventProcessorFactory(
-                         () => _options.UseOperationLogging ?
-                         (IDisposable)_telemetryClient.StartOperation<RequestTelemetry>("ProcessEvents") :
-                         DisposableAction.Empty,
-                    _logger, cancellationToken, _serviceEventSource, _handleEvents));
+                await Execution.ExecuteAsync(cancellationToken, 
+                    _logger, _serviceEventSource, 
+                    nameof(ReceiverService), Context.PartitionId.ToString(),
+                    async ct =>
+                    {
+                        await _switch(cancellationToken);
+                        await _host.RegisterEventProcessorFactoryAsync(
+                            new EventProcessorFactory(
+                                 () => _options.UseOperationLogging ? //capture option :! ?
+                                 (IDisposable)_telemetryClient.StartOperation<RequestTelemetry>("ProcessEvents") :
+                                 DisposableAction.Empty,
+                            _logger, cancellationToken, _serviceEventSource, _handleEvents));
+                    });
             }
-            catch (Exception e) when (cancellationToken.IsCancellationRequested)
+            catch (FabricTransientException e)
             {
-                if (e is OperationCanceledException)
-                {
-                    _logger.LogError(e, nameof(ReceiverService) + "RunAsync canceled. RunAsync for {PartitionId}", Context.PartitionId);
-                    _serviceEventSource($"{nameof(ReceiverService)}.RunAsync for {Context.PartitionId} error {e}", new object[0]);
-                    throw;
-                }
-
-                _logger.LogError(e, nameof(ReceiverService) + "Exception during shutdown. Exception of unexpected type .RunAsync for {PartitionId}", Context.PartitionId);
-                _serviceEventSource($"{nameof(ReceiverService)}.RunAsync for {Context.PartitionId} error {e}", new object[0]);
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, nameof(ReceiverService) + ".RunAsync for {PartitionId}", Context.PartitionId);
-                _serviceEventSource($"{nameof(ReceiverService)}.RunAsync for {Context.PartitionId} error {e}", new object[0]);
-                throw;
+                _logger.LogError(e, nameof(ReceiverService) + "Exception .RunAsync for {PartitionId}", Context.PartitionId);
             }
         }
         protected override async Task OnCloseAsync(CancellationToken cancellationToken)
