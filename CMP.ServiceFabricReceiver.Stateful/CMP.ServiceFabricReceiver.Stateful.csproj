@@ -6,7 +6,14 @@
     <VersionPrefix>0.1.0</VersionPrefix>
     <VersionSuffix>alpha</VersionSuffix>
     <PackageId>CMP.ServiceFabricReceiver.Stateful</PackageId>
+    <Authors>CDON</Authors>
+    <PackageIconUrl></PackageIconUrl>
+    <RepositoryUrl>https://github.com/cdon-dev/CMP.ServiceFabricReceivers</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/cdon-dev/CMP.ServiceFabricReceivers</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>cdon,service fabric,event hubs</PackageTags>
     <Title>CMP.ServiceFabricReceiver.Stateful</Title>
+    <PackageLicenseUrl>https://opensource.org/licenses/Apache-2.0</PackageLicenseUrl>
     <Platform>x64</Platform>
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
