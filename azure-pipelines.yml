@@ -32,7 +32,6 @@ steps:
   inputs:
     command: 'pack'
     packagesToPack: '**/*.csproj'
-    includesymbols: true
     includesource: true
 
 - task: PublishBuildArtifacts@1
