@@ -18,9 +18,6 @@ namespace CMP.ServiceFabricReceiver.Stateful
         private const int MaxMessageCount = 1000;
         private readonly Action<string, object[]> _serviceEventSource;
 
-        /// <summary>
-        ///     Names of the dictionaries that hold the current offset value and partition epoch.
-        /// </summary>
         private readonly Func<IReadOnlyCollection<EventData>, CancellationToken, Task> _handleEvents;
         private readonly Func<CancellationToken, Task> _switch;
         private readonly Func<string, EventPosition> _initialPositionProvider;
