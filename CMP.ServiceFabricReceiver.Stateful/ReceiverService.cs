@@ -23,9 +23,20 @@ namespace CMP.ServiceFabricReceiver.Stateful
         /// </summary>
         private readonly Func<IReadOnlyCollection<EventData>, CancellationToken, Task> _handleEvents;
         private readonly Func<CancellationToken, Task> _switch;
+        private readonly Func<string, EventPosition> _initialPositionProvider;
         private readonly ILogger _logger;
         private readonly TelemetryClient _telemetryClient;
         private readonly ReceiverOptions _options;
+
+        public ReceiverService(
+          StatefulServiceContext context,
+          ILogger logger,
+          TelemetryClient telemetryClient,
+          ReceiverOptions options,
+          Action<string, object[]> serviceEventSource,
+          Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents)
+          : this(context, logger, telemetryClient, options, serviceEventSource, handleEvents, ct => Task.CompletedTask)
+        { }
 
         public ReceiverService(
             StatefulServiceContext context,
@@ -34,7 +45,21 @@ namespace CMP.ServiceFabricReceiver.Stateful
             ReceiverOptions options,
             Action<string, object[]> serviceEventSource,
             Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents,
-            Func<CancellationToken, Task> @switch) : base(context)
+            Func<CancellationToken, Task> @switch)
+            : this(context, logger, telemetryClient, options, serviceEventSource, handleEvents, @switch,
+              s => EventPosition.FromStart())
+        { }
+
+        public ReceiverService(
+            StatefulServiceContext context,
+            ILogger logger,
+            TelemetryClient telemetryClient,
+            ReceiverOptions options,
+            Action<string, object[]> serviceEventSource,
+            Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents,
+            Func<CancellationToken, Task> @switch,
+            Func<string, EventPosition> initialPositionProvider)
+             : base(context)
         {
             _telemetryClient = telemetryClient;
             _options = options;
@@ -42,6 +67,7 @@ namespace CMP.ServiceFabricReceiver.Stateful
             _serviceEventSource = serviceEventSource;
             _handleEvents = handleEvents;
             _switch = @switch;
+            _initialPositionProvider = initialPositionProvider;
         }
 
         private void OnShutdown(Exception e)
@@ -103,7 +129,11 @@ namespace CMP.ServiceFabricReceiver.Stateful
                             OnShutdown = OnShutdown,
                             MaxBatchSize = MaxMessageCount,
                             PrefetchCount = MaxMessageCount,
-                            InitialPositionProvider = s => EventPosition.FromStart()
+                            InitialPositionProvider = s =>
+                            {
+                                _logger.LogInformation("Using InitialPositionProvider for {s}", s);
+                                return _initialPositionProvider(s);
+                            }
                         };
 
                         _logger.LogInformation("Create ServiceFabricProcessor with {ConsumerGroup}", _options.ConsumerGroup);
@@ -128,7 +158,7 @@ namespace CMP.ServiceFabricReceiver.Stateful
         }
 
         public virtual EventProcessor CreateProcessor(
-            ReceiverOptions options, 
+            ReceiverOptions options,
             TelemetryClient telemetryClient,
             ILogger logger,
             Action<string, object[]> serviceEventSource,
