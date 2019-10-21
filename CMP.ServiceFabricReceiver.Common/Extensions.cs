@@ -19,10 +19,12 @@ namespace CMP.ServiceFabricReceiver.Common
             Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents,
             Action<string, object[]> logDebug,
             Action<string, object[]> logInfo,
-            Action<Exception, string, object[]> logError
+            Action<Exception, string, object[]> logError,
+            int exceptionDelaySeconds = 1
             )
         {
             var processed = false;
+            var faulted = false;
             var events = messages.ToList();
 
             while (!processed)
@@ -48,13 +50,21 @@ namespace CMP.ServiceFabricReceiver.Common
                         }
                     }
 
+                    faulted = false;
                     processed = true;
+                }
+                catch (Exception ex) when (faulted)
+                {
+                    logError(ex, $"Failed to process events- Faulted : {faulted}. Canceled : {cancellationToken.IsCancellationRequested}", new object[] { cancellationToken.IsCancellationRequested });
+                    cancellationToken.ThrowIfCancellationRequested();
+                    throw;
                 }
                 catch (Exception ex)
                 {
                     logError(ex, $"Failed to process events. Canceled : {cancellationToken.IsCancellationRequested}", new object[] { cancellationToken.IsCancellationRequested });
+                    faulted = true;
                     cancellationToken.ThrowIfCancellationRequested();
-                    throw;
+                    await Task.Delay(TimeSpan.FromSeconds(exceptionDelaySeconds), cancellationToken);
                 }
             }
         }
