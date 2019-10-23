@@ -112,7 +112,7 @@ namespace CMP.ServiceFabricReceiver.Stateful
             try
             {
                 await Execution
-                    .ExecuteAsync(cancellationToken,
+                    .ExecuTeAsync(cancellationToken,
                     _logger, _serviceEventSource,
                     nameof(ReceiverService), Context.PartitionId.ToString(),
                     async ct =>
