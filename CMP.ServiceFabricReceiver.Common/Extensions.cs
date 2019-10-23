@@ -64,7 +64,8 @@ namespace CMP.ServiceFabricReceiver.Common
                     logError(ex, $"Failed to process events. Canceled : {cancellationToken.IsCancellationRequested}", new object[] { cancellationToken.IsCancellationRequested });
                     faulted = true;
                     cancellationToken.ThrowIfCancellationRequested();
-                    await Task.Delay(TimeSpan.FromSeconds(exceptionDelaySeconds), cancellationToken);
+                    if(exceptionDelaySeconds > 0)
+                        await Task.Delay(TimeSpan.FromSeconds(exceptionDelaySeconds), cancellationToken);
                 }
             }
         }

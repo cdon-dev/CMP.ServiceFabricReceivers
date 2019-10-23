@@ -163,6 +163,6 @@ namespace CMP.ServiceFabricReceiver.Stateful
             => new EventProcessor(() => options.UseOperationLogging ?
                                     (IDisposable)telemetryClient.StartOperation<RequestTelemetry>("ProcessEvents") :
                                     DisposableAction.Empty,
-                                    logger, serviceEventSource, handleEvents);
+                                    logger, serviceEventSource, handleEvents, options.ExceptionDelaySeconds);
     }
 }
