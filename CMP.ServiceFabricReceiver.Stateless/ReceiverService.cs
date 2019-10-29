@@ -22,7 +22,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
         private readonly Func<IReadOnlyCollection<EventData>, CancellationToken, Task> _handleEvents;
         private readonly Func<CancellationToken, Task> _switch;
         private readonly EventProcessorOptions _options;
-        private EventProcessorHost _host;
+        private readonly Lazy<EventProcessorHost> _host;
 
         public ReceiverService(
             StatelessServiceContext serviceContext,
@@ -43,13 +43,13 @@ namespace CMP.ServiceFabricRecevier.Stateless
             _switch = @switch;
             _options = options;
 
-            _host = new EventProcessorHost(
+            _host = new Lazy<EventProcessorHost>(() => new EventProcessorHost(
                 $"{_settings.HostName ?? serviceContext.ServiceTypeName}-{((Int64RangePartitionInformation)base.Partition.PartitionInfo).LowKey}",
                 _settings.EventHubPath,
                 _settings.ConsumerGroup,
                 _settings.EventHubConnectionString,
                 _settings.StorageConnectionString,
-                _settings.LeaseContainerName);
+                _settings.LeaseContainerName));
         }
 
         protected override Task OnOpenAsync(CancellationToken cancellationToken)
@@ -74,7 +74,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
                     async ct =>
                     {
                         await _switch(cancellationToken);
-                        await _host.RegisterEventProcessorFactoryAsync(
+                        await _host.Value.RegisterEventProcessorFactoryAsync(
                             new EventProcessorFactory(
                                  () => _settings.UseOperationLogging ? //capture option :! ?
                                  (IDisposable)_telemetryClient.StartOperation<RequestTelemetry>("ProcessEvents") :
