@@ -43,6 +43,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
             _switch = @switch;
             _options = options;
             _host = new EventProcessorHost(
+                _settings.HostName,
                 _settings.EventHubPath,
                 _settings.ConsumerGroup,
                 _settings.EventHubConnectionString,

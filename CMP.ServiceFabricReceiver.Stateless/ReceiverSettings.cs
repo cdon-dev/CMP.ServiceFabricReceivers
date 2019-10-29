@@ -2,6 +2,7 @@
 {
     public class ReceiverSettings
     {
+        public string HostName { get; set; }
         public string EventHubPath { get; set; }
         public string ConsumerGroup { get; set; }
         public string EventHubConnectionString { get; set; }
