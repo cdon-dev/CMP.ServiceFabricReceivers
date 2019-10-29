@@ -1,12 +1,9 @@
 ﻿using CMP.ServiceFabricReceiver.Common;
-using Microsoft.ApplicationInsights;
-using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.Azure.EventHubs;
 using Microsoft.Azure.EventHubs.Processor;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -28,11 +25,11 @@ namespace CMP.ServiceFabricRecevier.Stateless
             Action<string, object[]> serviceEventSource,
             Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents)
         {
-            this._operationLogger = operationLogger;
-            this._logger = logger;
-            this._cancellationToken = cancellationToken;
-            this._serviceEventSource = serviceEventSource;
-            this._handleEvents = handleEvents;
+            _operationLogger = operationLogger;
+            _logger = logger;
+            _cancellationToken = cancellationToken;
+            _serviceEventSource = serviceEventSource;
+            _handleEvents = handleEvents;
         }
 
 

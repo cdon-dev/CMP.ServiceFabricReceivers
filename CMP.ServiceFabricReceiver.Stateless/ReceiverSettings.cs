@@ -1,6 +1,6 @@
 ﻿namespace CMP.ServiceFabricRecevier.Stateless
 {
-    public class ReceiverOptions
+    public class ReceiverSettings
     {
         public string EventHubPath { get; set; }
         public string ConsumerGroup { get; set; }

@@ -34,7 +34,7 @@ namespace CMP.ServiceFabricReceiver.Common
                     using (operationLogger())
                     {
                         const string name = "EventProcessor";
-                        logDebug($"{name}.ProcessEventsAsync for {partitionId} got {events.Count()} events",
+                        logDebug($"{name}.ProcessEventsAsync for partition {partitionId} got {events.Count()} events",
                             new object[] { partitionId, events.Count });
 
                         if (!events.Any()) logDebug("Empty event list", Array.Empty<object>());
@@ -46,7 +46,7 @@ namespace CMP.ServiceFabricReceiver.Common
                         if (events.Any())
                         {
                             await checkpoint(events.Last());
-                            logDebug("Checkpoint saved", Array.Empty<object>());
+                            logDebug("Checkpoint saved with offset : {offset}. Partition : {partitionId}", new object[] { events.Last().SystemProperties.Offset, partitionId });
                         }
                     }
 
@@ -55,7 +55,7 @@ namespace CMP.ServiceFabricReceiver.Common
                 }
                 catch (Exception ex) when (faulted)
                 {
-                    logError(ex, $"Failed to process events- Faulted : {faulted}. Canceled : {cancellationToken.IsCancellationRequested}", new object[] { cancellationToken.IsCancellationRequested });
+                    logError(ex, $"Failed to process events- Faulted : {faulted}. Cancelled : {cancellationToken.IsCancellationRequested}", new object[] { cancellationToken.IsCancellationRequested });
                     cancellationToken.ThrowIfCancellationRequested();
                     throw;
                 }
@@ -64,7 +64,7 @@ namespace CMP.ServiceFabricReceiver.Common
                     logError(ex, $"Failed to process events. Canceled : {cancellationToken.IsCancellationRequested}", new object[] { cancellationToken.IsCancellationRequested });
                     faulted = true;
                     cancellationToken.ThrowIfCancellationRequested();
-                    if(exceptionDelaySeconds > 0)
+                    if (exceptionDelaySeconds > 0)
                         await Task.Delay(TimeSpan.FromSeconds(exceptionDelaySeconds), cancellationToken);
                 }
             }

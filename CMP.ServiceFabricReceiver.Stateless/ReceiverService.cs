@@ -17,40 +17,42 @@ namespace CMP.ServiceFabricRecevier.Stateless
     {
         private readonly ILogger _logger;
         private readonly TelemetryClient _telemetryClient;
-        private readonly ReceiverOptions _options;
+        private readonly ReceiverSettings _settings;
         private readonly Action<string, object[]> _serviceEventSource;
         private readonly Func<IReadOnlyCollection<EventData>, CancellationToken, Task> _handleEvents;
         private readonly Func<CancellationToken, Task> _switch;
+        private readonly EventProcessorOptions _options;
         private EventProcessorHost _host;
 
         public ReceiverService(
             StatelessServiceContext serviceContext,
             ILogger logger,
             TelemetryClient telemetryClient,
-            ReceiverOptions options,
+            ReceiverSettings settings,
             Action<string, object[]> serviceEventSource,
             Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents,
-            Func<CancellationToken, Task> @switch)
+            Func<CancellationToken, Task> @switch,
+            EventProcessorOptions options)
              : base(serviceContext)
         {
             _logger = logger;
             _telemetryClient = telemetryClient;
-            _options = options;
+            _settings = settings;
             _serviceEventSource = serviceEventSource;
             _handleEvents = handleEvents;
             _switch = @switch;
+            _options = options;
+            _host = new EventProcessorHost(
+                _settings.EventHubPath,
+                _settings.ConsumerGroup,
+                _settings.EventHubConnectionString,
+                _settings.StorageConnectionString,
+                _settings.LeaseContainerName);
         }
 
         protected override Task OnOpenAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation(nameof(OnOpenAsync));
-            _host = new EventProcessorHost(
-                _options.EventHubPath,
-                _options.ConsumerGroup,
-                _options.EventHubConnectionString,
-                _options.StorageConnectionString,
-                _options.LeaseContainerName);
-
             return base.OnOpenAsync(cancellationToken);
         }
 
@@ -64,18 +66,18 @@ namespace CMP.ServiceFabricRecevier.Stateless
         {
             try
             {
-                await Execution.ExecuteAsync(cancellationToken, 
-                    _logger, _serviceEventSource, 
+                await Execution.ExecuteAsync(cancellationToken,
+                    _logger, _serviceEventSource,
                     nameof(ReceiverService), Context.PartitionId.ToString(),
                     async ct =>
                     {
                         await _switch(cancellationToken);
                         await _host.RegisterEventProcessorFactoryAsync(
                             new EventProcessorFactory(
-                                 () => _options.UseOperationLogging ? //capture option :! ?
+                                 () => _settings.UseOperationLogging ? //capture option :! ?
                                  (IDisposable)_telemetryClient.StartOperation<RequestTelemetry>("ProcessEvents") :
                                  DisposableAction.Empty,
-                            _logger, cancellationToken, _serviceEventSource, _handleEvents));
+                            _logger, cancellationToken, _serviceEventSource, _handleEvents), _options);
                     });
             }
             catch (FabricTransientException e)
