@@ -44,7 +44,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
             _options = options;
 
             _host = new EventProcessorHost(
-                $"{_settings.HostName ?? serviceContext.ServiceTypeName}-{serviceContext.InstanceId}",
+                $"{_settings.HostName ?? serviceContext.ServiceTypeName}-{serviceContext.NodeContext.NodeName}",
                 _settings.EventHubPath,
                 _settings.ConsumerGroup,
                 _settings.EventHubConnectionString,
