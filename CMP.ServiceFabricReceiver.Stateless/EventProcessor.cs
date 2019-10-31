@@ -49,6 +49,20 @@ namespace CMP.ServiceFabricRecevier.Stateless
 
         public Task ProcessErrorAsync(PartitionContext context, Exception error)
         {
+            if (error is ReceiverDisconnectedException)
+            {
+                _logger.LogInformation(
+                    "Receiver disconnected on partition {PartitionId}. Exception: {@Exception}",
+                    context.PartitionId, error);
+                return Task.CompletedTask;
+            }
+            if (error is LeaseLostException)
+            {
+                _logger.LogInformation(
+                    "Lease lost on partition {PartitionId}. Exception: {@Exception}",
+                    context.PartitionId, error);
+                return Task.CompletedTask;
+            }
             _logger.LogError(error, "EventProcessor.ProcessErrorAsync for {PartitionId}", context.PartitionId);
             _serviceEventSource("EventProcessor.ProcessErrorAsync for {0} error {1}", new object[] { context.PartitionId, error });
             return Task.CompletedTask;
