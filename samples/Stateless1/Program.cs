@@ -57,7 +57,7 @@ namespace Stateless1
                              await EventHandler.Handle(events.ToArray());
                          },
                          ct => Task.CompletedTask,
-                         new Microsoft.Azure.EventHubs.Processor.EventProcessorOptions()
+                         new Microsoft.Azure.EventHubs.Processor.EventProcessorOptions() 
                    )).GetAwaiter().GetResult();
 
                 ServiceEventSource.Current.ServiceTypeRegistered(Process.GetCurrentProcess().Id, $"{typeof(ReceiverService).Name}2");

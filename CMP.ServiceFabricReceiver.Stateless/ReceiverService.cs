@@ -71,16 +71,17 @@ namespace CMP.ServiceFabricRecevier.Stateless
                 await Execution.ExecuteAsync(cancellationToken,
                     _logger, _serviceEventSource,
                     nameof(ReceiverService), Context.PartitionId.ToString(),
-                    async ct =>
+                    ct => ReceiverExceptions.ExecuteAsync(ct, _logger, Context.PartitionId.ToString(),
+                    async token =>
                     {
-                        await _switch(cancellationToken);
+                        await _switch(token);
                         await _host.RegisterEventProcessorFactoryAsync(
                             new EventProcessorFactory(
                                  () => _settings.UseOperationLogging ? //capture option :! ?
                                  (IDisposable)_telemetryClient.StartOperation<RequestTelemetry>("ProcessEvents") :
                                  DisposableAction.Empty,
-                            _logger, cancellationToken, _serviceEventSource, _handleEvents), _options);
-                    });
+                            _logger, token, _serviceEventSource, _handleEvents), _options);
+                    }));
             }
             catch (FabricTransientException e)
             {
