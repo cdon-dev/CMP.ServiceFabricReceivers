@@ -61,7 +61,7 @@ namespace CMP.ServiceFabricReceiver.Common
                     if (exceptionDelaySeconds > 0)
                         await Task.Delay(TimeSpan.FromSeconds(exceptionDelaySeconds), cancellationToken);
                 }
-                if (events.Any())
+                if (processed && events.Any())
                 {
                     await checkpoint(events.Last());
                     logDebug("Checkpoint saved with offset : {offset}. Partition : {partitionId}", new object[] { events.Last().SystemProperties.Offset, partitionId });
