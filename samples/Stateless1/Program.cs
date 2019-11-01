@@ -1,13 +1,15 @@
 using System;
 using System.Diagnostics;
-using System.Fabric;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CMP.ServiceFabricRecevier.Stateless;
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.Extensibility;
+using Microsoft.Azure.EventHubs;
+using Microsoft.Extensions.Logging;
 using Microsoft.ServiceFabric.Services.Runtime;
+using Microsoft.WindowsAzure.Storage;
 using Serilog;
 using Serilog.Extensions.Logging;
 
@@ -23,11 +25,16 @@ namespace Stateless1
 
             Log.Logger = new LoggerConfiguration()
                .WriteTo.ApplicationInsights(TelemetryConfiguration.Active, TelemetryConverter.Traces, Serilog.Events.LogEventLevel.Debug)
+               .WriteTo.AzureTableStorage(CloudStorageAccount.DevelopmentStorageAccount, Serilog.Events.LogEventLevel.Warning)
                .MinimumLevel.Debug()
                .CreateLogger();
 
             var logger = new SerilogLoggerProvider(Log.Logger, true)
                 .CreateLogger("Stateless-Sample");
+
+            var storageAccount = CloudStorageAccount.DevelopmentStorageAccount;
+            var table = storageAccount.CreateCloudTableClient().GetTableReference("receiversample");
+            table.CreateIfNotExistsAsync().GetAwaiter().GetResult();
 
             try
             {
@@ -52,12 +59,15 @@ namespace Stateless1
                              LeaseContainerName = "leases"
                          },
                          ServiceEventSource.Current.Message,
-                         async (events, ct) => {
-                             ServiceEventSource.Current.Message($"Handle events got {events.Count()} events.");
-                             await EventHandler.Handle(events.ToArray());
-                         },
+                         (events, ct) => EventHandler.Handle(context.NodeContext.NodeName, table, events.ToArray())
+                         ,
                          ct => Task.CompletedTask,
-                         new Microsoft.Azure.EventHubs.Processor.EventProcessorOptions() 
+                         new Microsoft.Azure.EventHubs.Processor.EventProcessorOptions {
+                             InitialOffsetProvider = partition => {
+                                 logger.LogWarning("InitialOffsetProvider called for {partition}", partition);
+                                 return EventPosition.FromStart();
+                             }
+                         }
                    )).GetAwaiter().GetResult();
 
                 ServiceEventSource.Current.ServiceTypeRegistered(Process.GetCurrentProcess().Id, $"{typeof(ReceiverService).Name}2");

@@ -13,6 +13,10 @@ namespace CMP.ServiceFabricReceiver.Common.Testing
         }
         public string SourceId { get; set; }
 
+        public string Message { get; set; }
+
+        public int Count { get; set; }
+
         public IDictionary<string, string> Meta { get; set; } = new Dictionary<string, string>();
     }
 }
