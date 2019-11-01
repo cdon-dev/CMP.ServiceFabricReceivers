@@ -42,12 +42,6 @@ namespace CMP.ServiceFabricReceiver.Common
                         cancellationToken.ThrowIfCancellationRequested();
                         await handleEvents(events, cancellationToken);
                         cancellationToken.ThrowIfCancellationRequested();
-
-                        if (events.Any())
-                        {
-                            await checkpoint(events.Last());
-                            logDebug("Checkpoint saved with offset : {offset}. Partition : {partitionId}", new object[] { events.Last().SystemProperties.Offset, partitionId });
-                        }
                     }
 
                     faulted = false;
@@ -66,6 +60,11 @@ namespace CMP.ServiceFabricReceiver.Common
                     cancellationToken.ThrowIfCancellationRequested();
                     if (exceptionDelaySeconds > 0)
                         await Task.Delay(TimeSpan.FromSeconds(exceptionDelaySeconds), cancellationToken);
+                }
+                if (events.Any())
+                {
+                    await checkpoint(events.Last());
+                    logDebug("Checkpoint saved with offset : {offset}. Partition : {partitionId}", new object[] { events.Last().SystemProperties.Offset, partitionId });
                 }
             }
         }
