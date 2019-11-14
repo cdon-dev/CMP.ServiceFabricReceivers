@@ -15,7 +15,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
         private readonly ILogger _logger;
         private readonly CancellationToken _cancellationToken;
         private readonly Action<string, object[]> _serviceEventSource;
-        private readonly Func<IReadOnlyCollection<EventData>, CancellationToken, Task> _handleEvents;
+        private readonly Func<string, Func<IReadOnlyCollection<EventData>, CancellationToken, Task>> _handleEvents;
 
 
         public EventProcessor(
@@ -23,7 +23,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
             ILogger logger,
             CancellationToken cancellationToken,
             Action<string, object[]> serviceEventSource,
-            Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents)
+            Func<string, Func<IReadOnlyCollection<EventData>, CancellationToken, Task>> handleEvents)
         {
             _operationLogger = operationLogger;
             _logger = logger;
@@ -74,7 +74,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
                 _operationLogger,
                 context.PartitionId,
                 context.CheckpointAsync,
-                _handleEvents,
+                (events, token) => _handleEvents(context.PartitionId)(events, token),
                 _logger.LogDebug,
                 Logging.Combine(_logger.LogInformation, _serviceEventSource),
                 Logging.Combine(_logger.LogError, (ex, m, p) => _serviceEventSource(m, p))

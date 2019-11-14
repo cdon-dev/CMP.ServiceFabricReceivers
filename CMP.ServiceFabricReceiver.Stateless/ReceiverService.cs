@@ -80,7 +80,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
                                  () => _settings.UseOperationLogging ? //capture option :! ?
                                  (IDisposable)_telemetryClient.StartOperation<RequestTelemetry>("ProcessEvents") :
                                  DisposableAction.Empty,
-                            _logger, token, _serviceEventSource, _handleEvents), _options);
+                            _logger, token, _serviceEventSource, partitionId => _handleEvents), _options);
                     }));
             }
             catch (FabricTransientException e)

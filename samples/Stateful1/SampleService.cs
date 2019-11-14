@@ -12,7 +12,7 @@ namespace Stateful1
 {
     public class SampleService : ReceiverService
     {
-        public SampleService(StatefulServiceContext context, ILogger logger, TelemetryClient telemetryClient, CMP.ServiceFabricReceiver.Stateful.ReceiverOptions options, Action<string, object[]> serviceEventSource, Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents, Func<CancellationToken, Task> @switch) : base(context, logger, telemetryClient, options, serviceEventSource, handleEvents, @switch)
+        public SampleService(StatefulServiceContext context, ILogger logger, TelemetryClient telemetryClient, CMP.ServiceFabricReceiver.Stateful.ReceiverOptions options, Action<string, object[]> serviceEventSource, Func<string, Func<IReadOnlyCollection<EventData>, CancellationToken, Task>> handleEvents, Func<CancellationToken, Task> @switch) : base(context, logger, telemetryClient, options, serviceEventSource, handleEvents, @switch)
         {
         }
     }

@@ -11,7 +11,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
 {
     public class EventProcessorFactory : IEventProcessorFactory
     {
-        private readonly Func<IReadOnlyCollection<EventData>, CancellationToken, Task> _handleEvents;
+        private readonly Func<string, Func<IReadOnlyCollection<EventData>, CancellationToken, Task>> _handleEvents;
         private readonly Func<IDisposable> _operationLogger;
         private readonly ILogger _logger;
         private readonly CancellationToken _cancellationToken;
@@ -22,7 +22,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
             ILogger logger,
             CancellationToken cancellationToken,
             Action<string, object[]> serviceEventSource,
-            Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents)
+            Func<string, Func<IReadOnlyCollection<EventData>, CancellationToken, Task>> handleEvents)
         {
             _handleEvents = handleEvents;
             _operationLogger = operationLogger;

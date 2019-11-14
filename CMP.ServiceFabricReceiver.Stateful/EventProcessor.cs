@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using CMP.ServiceFabricReceiver.Common;
-using Microsoft.ServiceFabric.Data;
 
 namespace CMP.ServiceFabricReceiver.Stateful
 {
@@ -15,14 +14,14 @@ namespace CMP.ServiceFabricReceiver.Stateful
         private readonly Func<IDisposable> _operationLogger;
         private readonly ILogger _logger;
         private readonly Action<string, object[]> _serviceEventSource;
-        private readonly Func<IReadOnlyCollection<EventData>, CancellationToken, Task> _handleEvents;
+        private readonly Func<string, Func<IReadOnlyCollection<EventData>, CancellationToken, Task>> _handleEvents;
         private readonly int exceptionDelaySeconds;
 
         public EventProcessor(
             Func<IDisposable> operationLogger,
             ILogger logger,
             Action<string, object[]> serviceEventSource,
-            Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents,
+            Func<string, Func<IReadOnlyCollection<EventData>, CancellationToken, Task>> handleEvents,
             int exceptionDelaySeconds = 1
             )
         {
@@ -60,7 +59,7 @@ namespace CMP.ServiceFabricReceiver.Stateful
              _operationLogger,
              context.PartitionId,
              context.CheckpointAsync,
-             _handleEvents,
+             (events, token) => _handleEvents(context.PartitionId)(events, token),
              _logger.LogDebug,
              Logging.Combine(_logger.LogInformation, _serviceEventSource),
              Logging.Combine(_logger.LogError, (ex, m, p) => _serviceEventSource(m, p)),
