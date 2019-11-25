@@ -11,14 +11,14 @@ namespace CMP.ServiceFabricReceiver.Stateful
 {
     public class EventProcessor : IEventProcessor
     {
-        private readonly Func<IDisposable> _operationLogger;
+        private readonly Func<IReadOnlyCollection<EventData>, string, Func<Task>, Task> _operationLogger;
         private readonly ILogger _logger;
         private readonly Action<string, object[]> _serviceEventSource;
         private readonly Func<string, Func<IReadOnlyCollection<EventData>, CancellationToken, Task>> _handleEvents;
         private readonly int exceptionDelaySeconds;
 
         public EventProcessor(
-            Func<IDisposable> operationLogger,
+            Func<IReadOnlyCollection<EventData>, string, Func<Task>, Task> operationLogger,
             ILogger logger,
             Action<string, object[]> serviceEventSource,
             Func<string, Func<IReadOnlyCollection<EventData>, CancellationToken, Task>> handleEvents,
@@ -56,10 +56,10 @@ namespace CMP.ServiceFabricReceiver.Stateful
         public override Task ProcessEventsAsync(CancellationToken cancellationToken, PartitionContext context, IEnumerable<EventData> eventDatas)
          => eventDatas.ProcessAsync(
              cancellationToken,
-             _operationLogger,
+             (events, f) => _operationLogger(events, context.PartitionId, f),
              context.PartitionId,
              context.CheckpointAsync,
-             (events, token) => _handleEvents(context.PartitionId)(events, token),
+             _handleEvents(context.PartitionId),
              _logger.LogDebug,
              Logging.Combine(_logger.LogInformation, _serviceEventSource),
              Logging.Combine(_logger.LogError, (ex, m, p) => _serviceEventSource(m, p)),

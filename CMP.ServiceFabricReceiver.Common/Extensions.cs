@@ -1,6 +1,10 @@
-﻿using Microsoft.Azure.EventHubs;
+﻿using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.DataContracts;
+using Microsoft.ApplicationInsights.Extensibility;
+using Microsoft.Azure.EventHubs;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -13,7 +17,7 @@ namespace CMP.ServiceFabricReceiver.Common
         public static async Task ProcessAsync(
             this IEnumerable<EventData> messages,
             CancellationToken cancellationToken,
-            Func<IDisposable> operationLogger,
+            Func<IReadOnlyCollection<EventData>, Func<Task>, Task> operationLogger,
             string partitionId,
             Func<EventData, Task> checkpoint,
             Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents,
@@ -31,7 +35,7 @@ namespace CMP.ServiceFabricReceiver.Common
             {
                 try
                 {
-                    using (operationLogger())
+                    await operationLogger(events, async () =>
                     {
                         const string name = "EventProcessor";
                         logDebug($"{name}.ProcessEventsAsync for partition {partitionId} got {events.Count()} events",
@@ -42,7 +46,7 @@ namespace CMP.ServiceFabricReceiver.Common
                         cancellationToken.ThrowIfCancellationRequested();
                         await handleEvents(events, cancellationToken);
                         cancellationToken.ThrowIfCancellationRequested();
-                    }
+                    });
 
                     faulted = false;
                     processed = true;
@@ -88,5 +92,38 @@ namespace CMP.ServiceFabricReceiver.Common
             f(self);
             return self;
         }
+
+        public static void AppendToRequestLog(this IOperationHolder<RequestTelemetry> requestLog,
+          IReadOnlyCollection<EventData> events, string partitionId)
+        {
+            Append("FirstEvent", events.First());
+            Append("LastEvent", events.Last());
+            requestLog.Telemetry.Properties["EventHubPartitionId"] = partitionId;
+            requestLog.Telemetry.Properties["EventCount"] = events.Count.ToString(CultureInfo.InvariantCulture);
+
+            void Append(string prefix, EventData @event)
+            {
+                requestLog.Telemetry.Properties[prefix + "Offset"] = @event.SystemProperties.Offset;
+                requestLog.Telemetry.Properties[prefix + "EnqueueTimeUtc"] =
+                    @event.SystemProperties.EnqueuedTimeUtc.ToString(CultureInfo.InvariantCulture);
+            }
+        }
+
+        public static Func<IReadOnlyCollection<EventData>, string, Func<Task>, Task> UseOperationLogging(this TelemetryClient telemetryClient, bool enabled = false)
+         => async (events, partitionId, f) =>
+         {
+             if (enabled)
+             {
+                 using (var operation = telemetryClient.StartOperation<RequestTelemetry>("ProcessEvents"))
+                 {
+                     operation.AppendToRequestLog(events, partitionId);
+                     await f();
+                 }
+             }
+             else
+             {
+                 await f();
+             }
+         };
     }
 }

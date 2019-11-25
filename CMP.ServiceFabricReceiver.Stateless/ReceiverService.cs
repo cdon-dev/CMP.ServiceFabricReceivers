@@ -76,10 +76,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
                     {
                         await _switch(token);
                         await _host.RegisterEventProcessorFactoryAsync(
-                            new EventProcessorFactory(
-                                 () => _settings.UseOperationLogging ? //capture option :! ?
-                                 (IDisposable)_telemetryClient.StartOperation<RequestTelemetry>("ProcessEvents") :
-                                 DisposableAction.Empty,
+                            new EventProcessorFactory(_telemetryClient.UseOperationLogging(_settings.UseOperationLogging),
                             _logger, token, _serviceEventSource, partitionId => _handleEvents), _options);
                     }));
             }

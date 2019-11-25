@@ -160,9 +160,7 @@ namespace CMP.ServiceFabricReceiver.Stateful
             ILogger logger,
             Action<string, object[]> serviceEventSource,
             Func<string, Func<IReadOnlyCollection<EventData>, CancellationToken, Task>> handleEvents)
-            => new EventProcessor(() => options.UseOperationLogging ?
-                                    (IDisposable)telemetryClient.StartOperation<RequestTelemetry>("ProcessEvents") :
-                                    DisposableAction.Empty,
-                                    logger, serviceEventSource, handleEvents, options.ExceptionDelaySeconds);
+            => new EventProcessor(_telemetryClient.UseOperationLogging(options.UseOperationLogging),
+            logger, serviceEventSource, handleEvents, options.ExceptionDelaySeconds);
     }
 }
