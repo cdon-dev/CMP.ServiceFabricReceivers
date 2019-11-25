@@ -59,7 +59,7 @@ namespace CMP.ServiceFabricReceiver.Common
                 }
                 catch (Exception ex)
                 {
-                    logError(ex, $"Failed to process events. Canceled : {cancellationToken.IsCancellationRequested}", new object[] { cancellationToken.IsCancellationRequested });
+                    logError(ex, $"Failed to process events. Cancelled : {cancellationToken.IsCancellationRequested}", new object[] { cancellationToken.IsCancellationRequested });
                     faulted = true;
                     cancellationToken.ThrowIfCancellationRequested();
                     if (exceptionDelaySeconds > 0)
