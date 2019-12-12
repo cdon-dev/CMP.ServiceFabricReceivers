@@ -13,9 +13,15 @@ namespace Stateless1
 {
     public class SampleService : ReceiverService
     {
-        public SampleService(StatelessServiceContext context, ILogger logger, TelemetryClient telemetryClient, 
-            ReceiverSettings settings, Action<string, object[]> serviceEventSource, Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents,
-            Func<CancellationToken, Task> @switch, EventProcessorOptions options)
+        public SampleService(
+            StatelessServiceContext context, 
+            ILogger logger, 
+            TelemetryClient telemetryClient, 
+            ReceiverSettings settings, 
+            Action<string, object[]> serviceEventSource, 
+            Func<string, Func<IReadOnlyCollection<EventData>, CancellationToken, Task>> handleEvents,
+            Func<CancellationToken, Task> @switch, 
+            EventProcessorOptions options)
             : base(context, logger, telemetryClient, settings, serviceEventSource, handleEvents, @switch, options)
         {
         }

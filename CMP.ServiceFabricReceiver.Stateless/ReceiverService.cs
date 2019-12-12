@@ -19,7 +19,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
         private readonly TelemetryClient _telemetryClient;
         private readonly ReceiverSettings _settings;
         private readonly Action<string, object[]> _serviceEventSource;
-        private readonly Func<IReadOnlyCollection<EventData>, CancellationToken, Task> _handleEvents;
+        private readonly Func<string, Func<IReadOnlyCollection<EventData>, CancellationToken, Task>> _handleEvents;
         private readonly Func<CancellationToken, Task> _switch;
         private readonly EventProcessorOptions _options;
         private readonly EventProcessorHost _host;
@@ -30,7 +30,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
             TelemetryClient telemetryClient,
             ReceiverSettings settings,
             Action<string, object[]> serviceEventSource,
-            Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents,
+            Func<string, Func<IReadOnlyCollection<EventData>, CancellationToken, Task>> handleEvents,
             Func<CancellationToken, Task> @switch,
             EventProcessorOptions options)
              : base(serviceContext)
@@ -76,8 +76,13 @@ namespace CMP.ServiceFabricRecevier.Stateless
                     {
                         await _switch(token);
                         await _host.RegisterEventProcessorFactoryAsync(
-                            new EventProcessorFactory(_telemetryClient.UseOperationLogging(_settings.UseOperationLogging),
-                            _logger, token, _serviceEventSource, partitionId => _handleEvents), _options);
+                            new EventProcessorFactory(
+                                _telemetryClient.UseOperationLogging(_settings.UseOperationLogging),
+                                _logger, 
+                                token, 
+                                _serviceEventSource, 
+                                partitionId => _handleEvents(partitionId)), 
+                            _options);
                     }));
             }
             catch (FabricTransientException e)
