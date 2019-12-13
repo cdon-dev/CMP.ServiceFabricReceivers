@@ -19,10 +19,10 @@ namespace Stateless1
             TelemetryClient telemetryClient, 
             ReceiverSettings settings, 
             Action<string, object[]> serviceEventSource, 
-            Func<string, Func<IReadOnlyCollection<EventData>, CancellationToken, Task>> handleEvents,
+            EventHandlerCreator eventHandlerCreator,
             Func<CancellationToken, Task> @switch, 
             EventProcessorOptions options)
-            : base(context, logger, telemetryClient, settings, serviceEventSource, handleEvents, @switch, options)
+            : base(context, logger, telemetryClient, settings, serviceEventSource, eventHandlerCreator, @switch, options)
         {
         }
     }

@@ -1,6 +1,5 @@
 ﻿using CMP.ServiceFabricReceiver.Common;
 using Microsoft.ApplicationInsights;
-using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.Azure.EventHubs;
 using Microsoft.Azure.EventHubs.ServiceFabricProcessor;
 using Microsoft.Extensions.Logging;
@@ -18,12 +17,14 @@ namespace CMP.ServiceFabricReceiver.Stateful
         private const int MaxMessageCount = 1000;
         private readonly Action<string, object[]> _serviceEventSource;
 
-        private readonly Func<string, Func<IReadOnlyCollection<EventData>, CancellationToken, Task>> _handleEvents;
+        private readonly EventHandlerCreator _eventHandlerCreator;
         private readonly Func<CancellationToken, Task> _switch;
         private readonly Func<string, EventPosition> _initialPositionProvider;
         private readonly ILogger _logger;
         private readonly TelemetryClient _telemetryClient;
         private readonly ReceiverOptions _options;
+
+        public delegate Func<IReadOnlyCollection<EventData>, CancellationToken, Task> EventHandlerCreator(string partitionId);
 
         public ReceiverService(
           StatefulServiceContext context,
@@ -31,8 +32,8 @@ namespace CMP.ServiceFabricReceiver.Stateful
           TelemetryClient telemetryClient,
           ReceiverOptions options,
           Action<string, object[]> serviceEventSource,
-          Func<string, Func<IReadOnlyCollection<EventData>, CancellationToken, Task>> handleEvents)
-          : this(context, logger, telemetryClient, options, serviceEventSource, handleEvents, ct => Task.CompletedTask)
+          EventHandlerCreator eventHandlerCreator)
+          : this(context, logger, telemetryClient, options, serviceEventSource, eventHandlerCreator, ct => Task.CompletedTask)
         { }
 
         public ReceiverService(
@@ -41,9 +42,9 @@ namespace CMP.ServiceFabricReceiver.Stateful
             TelemetryClient telemetryClient,
             ReceiverOptions options,
             Action<string, object[]> serviceEventSource,
-            Func<string, Func<IReadOnlyCollection<EventData>, CancellationToken, Task>> handleEvents,
+            EventHandlerCreator eventHandlerCreator,
             Func<CancellationToken, Task> @switch)
-            : this(context, logger, telemetryClient, options, serviceEventSource, handleEvents, @switch,
+            : this(context, logger, telemetryClient, options, serviceEventSource, eventHandlerCreator, @switch,
               s => EventPosition.FromStart())
         { }
 
@@ -53,7 +54,7 @@ namespace CMP.ServiceFabricReceiver.Stateful
             TelemetryClient telemetryClient,
             ReceiverOptions options,
             Action<string, object[]> serviceEventSource,
-            Func<string, Func<IReadOnlyCollection<EventData>, CancellationToken, Task>> handleEvents,
+            EventHandlerCreator eventHandlerCreator,
             Func<CancellationToken, Task> @switch,
             Func<string, EventPosition> initialPositionProvider)
              : base(context)
@@ -62,7 +63,7 @@ namespace CMP.ServiceFabricReceiver.Stateful
             _options = options;
             _logger = logger;
             _serviceEventSource = serviceEventSource;
-            _handleEvents = handleEvents;
+            _eventHandlerCreator = eventHandlerCreator;
             _switch = @switch;
             _initialPositionProvider = initialPositionProvider;
         }
@@ -140,7 +141,7 @@ namespace CMP.ServiceFabricReceiver.Stateful
                             Context.PartitionId,
                             StateManager,
                             Partition,
-                            CreateProcessor(_options, _telemetryClient, _logger, _serviceEventSource, _handleEvents),
+                            CreateProcessor(_options, _telemetryClient, _logger, _serviceEventSource, _eventHandlerCreator),
                             _options.ConnectionString,
                             _options.ConsumerGroup,
                             options);
@@ -159,8 +160,8 @@ namespace CMP.ServiceFabricReceiver.Stateful
             TelemetryClient telemetryClient,
             ILogger logger,
             Action<string, object[]> serviceEventSource,
-            Func<string, Func<IReadOnlyCollection<EventData>, CancellationToken, Task>> handleEvents)
+            EventHandlerCreator eventHandlerCreator)
             => new EventProcessor(_telemetryClient.UseOperationLogging(options.UseOperationLogging),
-            logger, serviceEventSource, handleEvents, options.ExceptionDelaySeconds);
+            logger, serviceEventSource, eventHandlerCreator, options.ExceptionDelaySeconds);
     }
 }
