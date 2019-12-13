@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using static CMP.ServiceFabricRecevier.Stateless.ReceiverService;
 
 namespace CMP.ServiceFabricRecevier.Stateless
 {
@@ -15,21 +16,20 @@ namespace CMP.ServiceFabricRecevier.Stateless
         private readonly ILogger _logger;
         private readonly CancellationToken _cancellationToken;
         private readonly Action<string, object[]> _serviceEventSource;
-        private readonly Func<string, Func<IReadOnlyCollection<EventData>, CancellationToken, Task>> _handleEvents;
-
+        private readonly EventHandlerCreator _eventHandlerCreator;
 
         public EventProcessor(
             Func<IReadOnlyCollection<EventData>, Func<Task>, Task> operationLogger,
             ILogger logger,
             CancellationToken cancellationToken,
             Action<string, object[]> serviceEventSource,
-            Func<string, Func<IReadOnlyCollection<EventData>, CancellationToken, Task>> handleEvents)
+            EventHandlerCreator eventHandlerCreator)
         {
             _operationLogger = operationLogger;
             _logger = logger;
             _cancellationToken = cancellationToken;
             _serviceEventSource = serviceEventSource;
-            _handleEvents = handleEvents;
+            _eventHandlerCreator = eventHandlerCreator;
         }
 
 
@@ -74,7 +74,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
                 _operationLogger,
                 context.PartitionId,
                 context.CheckpointAsync,
-                (events, token) => _handleEvents(context.PartitionId)(events, token),
+                (events, token) => _eventHandlerCreator(context.PartitionId)(events, token),
                 _logger.LogDebug,
                 Logging.Combine(_logger.LogInformation, _serviceEventSource),
                 Logging.Combine(_logger.LogError, (ex, m, p) => _serviceEventSource(m, p))
