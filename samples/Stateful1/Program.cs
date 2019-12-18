@@ -42,7 +42,7 @@ namespace Stateful1
                              ConsumerGroup = "sf"
                          },
                          ServiceEventSource.Current.Message,
-                         async (events, ct) => {
+                         partitionId => async (events, ct) => {
                              ServiceEventSource.Current.Message($"Handle events got {events.Count()} events.");
                              await EventHandler.Handle(events.ToArray());
                          },

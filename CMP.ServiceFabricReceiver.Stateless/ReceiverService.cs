@@ -19,10 +19,12 @@ namespace CMP.ServiceFabricRecevier.Stateless
         private readonly TelemetryClient _telemetryClient;
         private readonly ReceiverSettings _settings;
         private readonly Action<string, object[]> _serviceEventSource;
-        private readonly Func<IReadOnlyCollection<EventData>, CancellationToken, Task> _handleEvents;
+        private readonly EventHandlerCreator _eventHandlerCreator;
         private readonly Func<CancellationToken, Task> _switch;
         private readonly EventProcessorOptions _options;
         private readonly EventProcessorHost _host;
+
+        public delegate Func<IReadOnlyCollection<EventData>, CancellationToken, Task> EventHandlerCreator(string partitionId);
 
         public ReceiverService(
             StatelessServiceContext serviceContext,
@@ -30,7 +32,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
             TelemetryClient telemetryClient,
             ReceiverSettings settings,
             Action<string, object[]> serviceEventSource,
-            Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents,
+            EventHandlerCreator eventHandlerCreator,
             Func<CancellationToken, Task> @switch,
             EventProcessorOptions options)
              : base(serviceContext)
@@ -39,7 +41,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
             _telemetryClient = telemetryClient;
             _settings = settings;
             _serviceEventSource = serviceEventSource;
-            _handleEvents = handleEvents;
+            _eventHandlerCreator = eventHandlerCreator;
             _switch = @switch;
             _options = options;
 
@@ -77,10 +79,12 @@ namespace CMP.ServiceFabricRecevier.Stateless
                         await _switch(token);
                         await _host.RegisterEventProcessorFactoryAsync(
                             new EventProcessorFactory(
-                                 () => _settings.UseOperationLogging ? //capture option :! ?
-                                 (IDisposable)_telemetryClient.StartOperation<RequestTelemetry>("ProcessEvents") :
-                                 DisposableAction.Empty,
-                            _logger, token, _serviceEventSource, _handleEvents), _options);
+                                _telemetryClient.UseOperationLogging(_settings.UseOperationLogging),
+                                _logger, 
+                                token, 
+                                _serviceEventSource, 
+                                partitionId => _eventHandlerCreator(partitionId)), 
+                            _options);
                     }));
             }
             catch (FabricTransientException e)

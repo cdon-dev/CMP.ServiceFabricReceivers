@@ -59,8 +59,8 @@ namespace Stateless1
                              LeaseContainerName = "leases"
                          },
                          ServiceEventSource.Current.Message,
-                         (events, ct) => EventHandler.Handle(context.NodeContext.NodeName, table, events.ToArray())
-                         ,
+                         (partitionId) => 
+                            (events, ct) => EventHandler.Handle(context.NodeContext.NodeName, table, events.ToArray()),
                          ct => Task.CompletedTask,
                          new Microsoft.Azure.EventHubs.Processor.EventProcessorOptions {
                              InitialOffsetProvider = partition => {

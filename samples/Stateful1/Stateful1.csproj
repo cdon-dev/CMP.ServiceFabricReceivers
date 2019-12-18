@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.ServiceFabric.Services" Version="3.4.664" />
+    <PackageReference Include="Microsoft.ServiceFabric.Services" Version="3.4.677" />
     <PackageReference Include="Microsoft.ApplicationInsights.ServiceFabric" Version="2.3.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="2.2.0" />
     <PackageReference Include="Serilog.Extensions.Logging" Version="3.0.1" />

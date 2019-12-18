@@ -6,30 +6,30 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using CMP.ServiceFabricReceiver.Common;
-using Microsoft.ServiceFabric.Data;
+using static CMP.ServiceFabricReceiver.Stateful.ReceiverService;
 
 namespace CMP.ServiceFabricReceiver.Stateful
 {
     public class EventProcessor : IEventProcessor
     {
-        private readonly Func<IDisposable> _operationLogger;
+        private readonly Func<IReadOnlyCollection<EventData>, string, Func<Task>, Task> _operationLogger;
         private readonly ILogger _logger;
         private readonly Action<string, object[]> _serviceEventSource;
-        private readonly Func<IReadOnlyCollection<EventData>, CancellationToken, Task> _handleEvents;
+        private readonly EventHandlerCreator _eventHandlerCreator;
         private readonly int exceptionDelaySeconds;
 
         public EventProcessor(
-            Func<IDisposable> operationLogger,
+            Func<IReadOnlyCollection<EventData>, string, Func<Task>, Task> operationLogger,
             ILogger logger,
             Action<string, object[]> serviceEventSource,
-            Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents,
+            EventHandlerCreator eventHandlerCreator,
             int exceptionDelaySeconds = 1
             )
         {
             _operationLogger = operationLogger;
             _logger = logger;
             _serviceEventSource = serviceEventSource;
-            _handleEvents = handleEvents;
+            _eventHandlerCreator = eventHandlerCreator;
             this.exceptionDelaySeconds = exceptionDelaySeconds;
         }
 
@@ -57,10 +57,10 @@ namespace CMP.ServiceFabricReceiver.Stateful
         public override Task ProcessEventsAsync(CancellationToken cancellationToken, PartitionContext context, IEnumerable<EventData> eventDatas)
          => eventDatas.ProcessAsync(
              cancellationToken,
-             _operationLogger,
+             (events, f) => _operationLogger(events, context.PartitionId, f),
              context.PartitionId,
              context.CheckpointAsync,
-             _handleEvents,
+             _eventHandlerCreator(context.PartitionId),
              _logger.LogDebug,
              Logging.Combine(_logger.LogInformation, _serviceEventSource),
              Logging.Combine(_logger.LogError, (ex, m, p) => _serviceEventSource(m, p)),

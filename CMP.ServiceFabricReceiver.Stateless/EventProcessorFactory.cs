@@ -6,25 +6,26 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using static CMP.ServiceFabricRecevier.Stateless.ReceiverService;
 
 namespace CMP.ServiceFabricRecevier.Stateless
 {
     public class EventProcessorFactory : IEventProcessorFactory
     {
-        private readonly Func<IReadOnlyCollection<EventData>, CancellationToken, Task> _handleEvents;
-        private readonly Func<IDisposable> _operationLogger;
+        private readonly EventHandlerCreator _eventHandlerCreator;
+        private readonly Func<IReadOnlyCollection<EventData>, string, Func<Task>, Task> _operationLogger;
         private readonly ILogger _logger;
         private readonly CancellationToken _cancellationToken;
         private readonly Action<string, object[]> _serviceEventSource;
 
         public EventProcessorFactory(
-            Func<IDisposable> operationLogger,
+            Func<IReadOnlyCollection<EventData>, string, Func<Task>, Task> operationLogger,
             ILogger logger,
             CancellationToken cancellationToken,
             Action<string, object[]> serviceEventSource,
-            Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents)
+            EventHandlerCreator eventHandlerCreator)
         {
-            _handleEvents = handleEvents;
+            _eventHandlerCreator = eventHandlerCreator;
             _operationLogger = operationLogger;
             _logger = logger;
             _cancellationToken = cancellationToken;
@@ -32,6 +33,6 @@ namespace CMP.ServiceFabricRecevier.Stateless
         }
 
         public IEventProcessor CreateEventProcessor(PartitionContext context)
-         => new EventProcessor(_operationLogger, _logger, _cancellationToken, _serviceEventSource, _handleEvents);
+         => new EventProcessor((events, f) => _operationLogger(events, context.PartitionId, f), _logger, _cancellationToken, _serviceEventSource, _eventHandlerCreator);
     }
 }

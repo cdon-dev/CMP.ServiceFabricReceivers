@@ -1,3 +1,4 @@
+using Microsoft.ApplicationInsights;
 using Microsoft.Azure.EventHubs;
 using Microsoft.Extensions.Logging;
 using System;
@@ -19,6 +20,7 @@ namespace CMP.ServiceFabricReceiver.Common.Tests
             var cts = new CancellationTokenSource();
             Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents = (events, token) => Task.CompletedTask;
             Func<EventData, Task> checkpoint = ed => Task.CompletedTask;
+            var tc = new TelemetryClient();
 
             cts.Cancel();
 
@@ -26,7 +28,7 @@ namespace CMP.ServiceFabricReceiver.Common.Tests
             {
                 await Execution.ExecuteAsync(cts.Token, new TestLogger(), (s, o) => { }, "test", "0",
                     ct => eventList.ProcessAsync(ct,
-                   () => DisposableAction.Empty,
+                   (events, f) => tc.UseOperationLogging()(events, "test", f),
                    Guid.NewGuid().ToString(),
                    checkpoint,
                    handleEvents,
@@ -42,6 +44,8 @@ namespace CMP.ServiceFabricReceiver.Common.Tests
         {
             var eventList = Enumerable.Range(0, 1).Select(x => new EventData(new byte[100]));
             var cts = new CancellationTokenSource();
+            var tc = new TelemetryClient();
+
             Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents = (events, token)
                 =>
             {
@@ -56,7 +60,7 @@ namespace CMP.ServiceFabricReceiver.Common.Tests
             {
                 await Execution.ExecuteAsync(cts.Token, new TestLogger(), (s, o) => { }, "test", "0",
                 ct => eventList.ProcessAsync(ct,
-                   () => DisposableAction.Empty,
+                   (events, f) => tc.UseOperationLogging()(events, "test", f),
                    Guid.NewGuid().ToString(),
                    checkpoint,
                    handleEvents,
@@ -71,8 +75,12 @@ namespace CMP.ServiceFabricReceiver.Common.Tests
         [Fact]
         public async Task ProccessCancelsHandleEventsThrows()
         {
-            var eventList = Enumerable.Range(0, 1).Select(x => new EventData(new byte[100]));
+            var eventList = Enumerable.Range(0, 1).Select((x, i) => new EventData(new byte[100]).Tap(e => {
+                e.SystemProperties = new EventData.SystemPropertiesCollection(i, DateTime.UtcNow, "45000", "test");
+            }));
             var cts = new CancellationTokenSource();
+            var tc = new TelemetryClient();
+
             Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents = (events, token)
                 =>
             {
@@ -85,7 +93,7 @@ namespace CMP.ServiceFabricReceiver.Common.Tests
             {
                 await Execution.ExecuteAsync(cts.Token, new TestLogger(), (s, o) => { }, "test", "0",
                 ct => eventList.ProcessAsync(ct,
-                   () => DisposableAction.Empty,
+                   (events, f) => tc.UseOperationLogging()(events, "test", f),
                    Guid.NewGuid().ToString(),
                    checkpoint,
                    handleEvents,
@@ -102,6 +110,8 @@ namespace CMP.ServiceFabricReceiver.Common.Tests
         {
             var eventList = Enumerable.Range(0, 1).Select(x => new EventData(new byte[100]));
             var cts = new CancellationTokenSource();
+            var tc = new TelemetryClient();
+
             Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents = (events, token)
                 => Task.Delay(1000, cts.Token);
             Func<EventData, Task> checkpoint = ed => Task.CompletedTask;
@@ -112,7 +122,7 @@ namespace CMP.ServiceFabricReceiver.Common.Tests
             {
                 await Execution.ExecuteAsync(cts.Token, new TestLogger(), (s, o) => { }, "test", "0",
                 ct => eventList.ProcessAsync(ct,
-                   () => DisposableAction.Empty,
+                   (events, f) => tc.UseOperationLogging()(events, "test", f),
                    Guid.NewGuid().ToString(),
                    checkpoint,
                    handleEvents,
@@ -128,6 +138,8 @@ namespace CMP.ServiceFabricReceiver.Common.Tests
         {
             var eventList = Enumerable.Range(0, 1).Select(x => new EventData(new byte[100]));
             var cts = new CancellationTokenSource();
+            var tc = new TelemetryClient();
+
             Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents = (events, token) => Task.CompletedTask;
             Func<EventData, Task> checkpoint = ed =>
             {
@@ -140,7 +152,7 @@ namespace CMP.ServiceFabricReceiver.Common.Tests
             {
                 await Execution.ExecuteAsync(cts.Token, new TestLogger(), (s, o) => { }, "test", "0",
                  ct => eventList.ProcessAsync(ct,
-                   () => DisposableAction.Empty,
+                   (events, f) => tc.UseOperationLogging()(events, "test", f),
                    Guid.NewGuid().ToString(),
                    checkpoint,
                    handleEvents,
@@ -156,6 +168,8 @@ namespace CMP.ServiceFabricReceiver.Common.Tests
         {
             var eventList = Enumerable.Range(0, 1).Select(x => new EventData(new byte[100]));
             var cts = new CancellationTokenSource();
+            var tc = new TelemetryClient();
+
             Func<IReadOnlyCollection<EventData>, CancellationToken, Task> handleEvents = (events, token) => Task.CompletedTask;
             Func<EventData, Task> checkpoint = ed =>
             {
@@ -166,7 +180,7 @@ namespace CMP.ServiceFabricReceiver.Common.Tests
             {
                 await Execution.ExecuteAsync(cts.Token, new TestLogger(), (s, o) => { }, "test", "0",
                  ct => eventList.ProcessAsync(ct,
-                   () => DisposableAction.Empty,
+                   (events, f) => tc.UseOperationLogging()(events, "test", f),
                    Guid.NewGuid().ToString(),
                    checkpoint,
                    handleEvents,
