@@ -116,8 +116,10 @@ namespace CMP.ServiceFabricReceiver.Common
              {
                  using (var operation = telemetryClient.StartOperation<RequestTelemetry>("ProcessEvents"))
                  {
+                     operation.Telemetry.Success = false;
                      operation.AppendToRequestLog(events, partitionId);
                      await f();
+                     operation.Telemetry.Success = true;
                  }
              }
              else
