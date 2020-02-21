@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <!--<RuntimeIdentifier>win7-x64</RuntimeIdentifier>-->
-    <VersionPrefix>0.2.2</VersionPrefix>
+    <VersionPrefix>0.2.3</VersionPrefix>
     <VersionSuffix>alpha</VersionSuffix>
     <PackageId>CMP.ServiceFabricReceiver.Stateless</PackageId>
     <Title>CMP.ServiceFabricReceiver.Stateless</Title>
