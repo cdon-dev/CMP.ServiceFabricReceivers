@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <!--<RuntimeIdentifier>win7-x64</RuntimeIdentifier>-->
     <VersionPrefix>0.2.2</VersionPrefix>
     <VersionSuffix>alpha</VersionSuffix>
@@ -19,8 +19,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="2.2.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="3.1.0" />
     <PackageReference Include="Microsoft.ServiceFabric.Services" Version="3.4.677" />
     <PackageReference Include="Microsoft.Azure.EventHubs.Processor" Version="4.1.0" />
   </ItemGroup>
