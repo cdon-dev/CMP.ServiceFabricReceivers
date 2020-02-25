@@ -4,46 +4,41 @@ using Microsoft.Azure.EventHubs.Processor;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using static CMP.ServiceFabricRecevier.Stateless.ReceiverService;
 
 namespace CMP.ServiceFabricRecevier.Stateless
 {
     public class EventProcessor : IEventProcessor
     {
-        private readonly Func<IReadOnlyCollection<EventData>, Func<Task>, Task> _operationLogger;
         private readonly ILogger _logger;
         private readonly CancellationToken _cancellationToken;
-        private readonly Action<string, object[]> _serviceEventSource;
-        private readonly EventHandlerCreator _eventHandlerCreator;
+        private readonly Func<string, Func<EventContext, Task>> _f;
+        //private readonly Action<string, object[]> _serviceEventSource;
 
         public EventProcessor(
-            Func<IReadOnlyCollection<EventData>, Func<Task>, Task> operationLogger,
             ILogger logger,
             CancellationToken cancellationToken,
-            Action<string, object[]> serviceEventSource,
-            EventHandlerCreator eventHandlerCreator)
+            Func<string, Func<EventContext, Task>> f)
         {
-            _operationLogger = operationLogger;
             _logger = logger;
             _cancellationToken = cancellationToken;
-            _serviceEventSource = serviceEventSource;
-            _eventHandlerCreator = eventHandlerCreator;
+            _f = f;
         }
 
 
         public Task CloseAsync(PartitionContext context, CloseReason reason)
         {
             _logger.LogInformation("EventProcessor.CloseAsync for {PartitionId} reason {1}", context.PartitionId, reason);
-            _serviceEventSource("EventProcessor.CloseAsync for {0} reason {1}", new object[] { context.PartitionId, reason });
+            //_serviceEventSource("EventProcessor.CloseAsync for {0} reason {1}", new object[] { context.PartitionId, reason });
             return Task.CompletedTask;
         }
 
         public Task OpenAsync(PartitionContext context)
         {
             _logger.LogInformation("EventProcessor.OpenAsync for {PartitionId}", context.PartitionId);
-            _serviceEventSource("EventProcessor.OpenAsync for {0}", new[] { context.PartitionId });
+            //_serviceEventSource("EventProcessor.OpenAsync for {0}", new[] { context.PartitionId });
             return Task.CompletedTask;
         }
 
@@ -64,20 +59,18 @@ namespace CMP.ServiceFabricRecevier.Stateless
                 return Task.CompletedTask;
             }
             _logger.LogError(error, "EventProcessor.ProcessErrorAsync for {PartitionId}", context.PartitionId);
-            _serviceEventSource("EventProcessor.ProcessErrorAsync for {0} error {1}", new object[] { context.PartitionId, error });
+            //_serviceEventSource("EventProcessor.ProcessErrorAsync for {0} error {1}", new object[] { context.PartitionId, error });
             return Task.CompletedTask;
         }
 
         public Task ProcessEventsAsync(PartitionContext context, IEnumerable<EventData> messages)
-            => messages.ProcessAsync(
-                _cancellationToken,
-                _operationLogger,
-                context.PartitionId,
-                context.CheckpointAsync,
-                (events, token) => _eventHandlerCreator(context.PartitionId)(events, token),
-                _logger.LogDebug,
-                Logging.Combine(_logger.LogInformation, _serviceEventSource),
-                Logging.Combine(_logger.LogError, (ex, m, p) => _serviceEventSource(m, p))
-            );
+            => _f(context.PartitionId)(new EventContext
+            {
+                CancellationToken = _cancellationToken,
+                Events = messages.ToArray(),
+                PartitionId = context.PartitionId,
+                Checkpoint = context.CheckpointAsync,
+                Logger = _logger
+            }); //TODO join tokens ?
     }
 }

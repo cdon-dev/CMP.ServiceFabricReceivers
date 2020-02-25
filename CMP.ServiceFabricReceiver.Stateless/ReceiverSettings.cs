@@ -1,4 +1,6 @@
-﻿namespace CMP.ServiceFabricRecevier.Stateless
+﻿using Microsoft.Azure.EventHubs.Processor;
+
+namespace CMP.ServiceFabricRecevier.Stateless
 {
     public class ReceiverSettings
     {
@@ -9,5 +11,14 @@
         public string StorageConnectionString { get; set; }
         public string LeaseContainerName { get; set; }
         public bool UseOperationLogging { get; set; }
+
+        public EventProcessorHost ToHost(string nodeName = "unknown") 
+            => new EventProcessorHost(
+                    $"{HostName}-{nodeName}",
+                     EventHubPath,
+                     ConsumerGroup,
+                     EventHubConnectionString,
+                     StorageConnectionString,
+                     LeaseContainerName);
     }
 }

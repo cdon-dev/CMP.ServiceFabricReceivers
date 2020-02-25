@@ -1,6 +1,5 @@
 ﻿using CMP.ServiceFabricReceiver.Common;
 using Microsoft.ApplicationInsights;
-using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.Azure.EventHubs;
 using Microsoft.Azure.EventHubs.Processor;
 using Microsoft.Extensions.Logging;
@@ -16,32 +15,27 @@ namespace CMP.ServiceFabricRecevier.Stateless
     public class ReceiverService : StatelessService
     {
         private readonly ILogger _logger;
-        private readonly TelemetryClient _telemetryClient;
         private readonly ReceiverSettings _settings;
         private readonly Action<string, object[]> _serviceEventSource;
-        private readonly EventHandlerCreator _eventHandlerCreator;
+        private readonly Func<string, Func<EventContext, Task>> _f;
         private readonly Func<CancellationToken, Task> _switch;
         private readonly EventProcessorOptions _options;
         private readonly EventProcessorHost _host;
 
-        public delegate Func<IReadOnlyCollection<EventData>, CancellationToken, Task> EventHandlerCreator(string partitionId);
-
         public ReceiverService(
             StatelessServiceContext serviceContext,
             ILogger logger,
-            TelemetryClient telemetryClient,
             ReceiverSettings settings,
             Action<string, object[]> serviceEventSource,
-            EventHandlerCreator eventHandlerCreator,
             Func<CancellationToken, Task> @switch,
+            Func<string, Func<EventContext, Task>> f,
             EventProcessorOptions options)
              : base(serviceContext)
         {
             _logger = logger;
-            _telemetryClient = telemetryClient;
             _settings = settings;
             _serviceEventSource = serviceEventSource;
-            _eventHandlerCreator = eventHandlerCreator;
+            _f = f;
             _switch = @switch;
             _options = options;
 
@@ -70,28 +64,34 @@ namespace CMP.ServiceFabricRecevier.Stateless
         {
             try
             {
-                await Execution.ExecuteAsync(cancellationToken,
-                    _logger, _serviceEventSource,
-                    nameof(ReceiverService), Context.PartitionId.ToString(),
-                    ct => ReceiverExceptions.ExecuteAsync(ct, _logger, Context.PartitionId.ToString(),
-                    async token =>
-                    {
-                        await _switch(token);
-                        await _host.RegisterEventProcessorFactoryAsync(
-                            new EventProcessorFactory(
-                                _telemetryClient.UseOperationLogging(_settings.UseOperationLogging),
-                                _logger, 
-                                token, 
-                                _serviceEventSource, 
-                                partitionId => _eventHandlerCreator(partitionId)), 
-                            _options);
-                    }));
+                await _switch(cancellationToken);
+                await RunAsync(_host, _logger, _options, cancellationToken, _serviceEventSource, Context.PartitionId.ToString() ,_f);
             }
             catch (FabricTransientException e)
             {
                 _logger.LogError(e, nameof(ReceiverService) + "Exception .RunAsync for {PartitionId}", Context.PartitionId);
             }
         }
+
+        public static Task RunAsync(
+            EventProcessorHost host,
+            ILogger logger,
+            EventProcessorOptions options,
+            CancellationToken cancellationToken,
+            Action<string, object[]> serviceEventSource,
+            string partition,
+            Func<string, Func<EventContext, Task>> f)
+            => Execution.ExecuteAsync(
+                cancellationToken,
+                logger,
+                serviceEventSource,
+                nameof(ReceiverService),
+                partition,
+                ct => ReceiverExceptions.ExecuteAsync(ct, logger, "none", t =>
+                            host.RegisterEventProcessorFactoryAsync(new EventProcessorFactory(logger, t, f), options)
+                        )
+                );
+
         protected override async Task OnCloseAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation(nameof(OnCloseAsync));
