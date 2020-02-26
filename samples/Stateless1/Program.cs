@@ -24,10 +24,13 @@ namespace Stateless1
         /// </summary>
         private static void Main(string[] args)
         {
+            var telemetryClient = new TelemetryClient(TelemetryConfiguration.CreateDefault());
+
             Log.Logger = new LoggerConfiguration()
-               .WriteTo.ApplicationInsights(TelemetryConfiguration.Active, TelemetryConverter.Traces, Serilog.Events.LogEventLevel.Debug)
+               .WriteTo.ApplicationInsights(telemetryClient, TelemetryConverter.Traces, Serilog.Events.LogEventLevel.Debug)
                //.WriteTo.AzureTableStorage(CloudStorageAccount.DevelopmentStorageAccount, Serilog.Events.LogEventLevel.Warning)
-               .WriteTo.ColoredConsole(Serilog.Events.LogEventLevel.Debug)
+               .WriteTo.ColoredConsole(Serilog.Events.LogEventLevel.Debug, outputTemplate:
+                    "[{Timestamp:HH:mm:ss} {Level:u3}] {PartitionId} {Scope:lj} {Message:lj}{NewLine}{Exception}")
                .MinimumLevel.Debug()
                .Enrich.FromLogContext()
                .CreateLogger();
@@ -60,7 +63,7 @@ namespace Stateless1
             var pipeline = Composition.Combine(
                                  Features.PartitionLogging(),
                                  Features.Retry(),
-                                 Features.OperationLogging(new TelemetryClient(TelemetryConfiguration.Active)),
+                                 Features.OperationLogging(telemetryClient),
                                  Features.Logging(),
                                  Features.Handling(x => EventHandler.Handle("Sample", table, x.Events)),
                                  Features.Checkpointing()

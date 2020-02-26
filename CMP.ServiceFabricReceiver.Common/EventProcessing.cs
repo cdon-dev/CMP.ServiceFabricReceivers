@@ -46,44 +46,40 @@ namespace CMP.ServiceFabricReceiver.Common
         public static Func<Func<EventContext, Task>, Func<EventContext, Task>> PartitionLogging()
          => f => async ctx =>
          {
-             ctx.Logger.LogDebug($"{nameof(PartitionLogging)} start");
-
              using (ctx.Logger.BeginScope("Event hub partition : {PartitionId}", ctx.PartitionId))
              {
                  await f(ctx);
              }
-             ctx.Logger.LogDebug($"{nameof(PartitionLogging)} end");
          };
 
         public static Func<Func<EventContext, Task>, Func<EventContext, Task>> Logging()
          => f => async ctx =>
          {
-             ctx.Logger.LogDebug($"{nameof(Logging)} start");
+             using (ctx.Logger.BeginScope("{FeatureName} - Events ({eventCount}) - Cancelled : {cancelled}", nameof(Logging), ctx.Events.Length, ctx.CancellationToken.IsCancellationRequested))
+             {
+                 const string name = "EventProcessor";
+                 ctx.Logger.LogDebug($"{name}.ProcessEventsAsync for partition {ctx.PartitionId} got {ctx.Events.Count()} events",
+                     new object[] { ctx.PartitionId, ctx.Events.Count() });
 
-             const string name = "EventProcessor";
-             ctx.Logger.LogDebug($"{name}.ProcessEventsAsync for partition {ctx.PartitionId} got {ctx.Events.Count()} events",
-                 new object[] { ctx.PartitionId, ctx.Events.Count() });
+                 if (!ctx.Events.Any()) ctx.Logger.LogDebug("Empty event list", Array.Empty<object>());
 
-             if (!ctx.Events.Any()) ctx.Logger.LogDebug("Empty event list", Array.Empty<object>());
-
-             await f(ctx);
-
-             ctx.Logger.LogDebug($"{nameof(Logging)} end");
+                 await f(ctx);
+             }
          };
 
         public static Func<Func<EventContext, Task>, Func<EventContext, Task>> OperationLogging(TelemetryClient telemetryClient)
             => f => async ctx =>
             {
-                ctx.Logger.LogDebug($"{nameof(OperationLogging)} start");
-
-                using (var operation = telemetryClient.StartOperation<RequestTelemetry>("ProcessEvents"))
+                using (ctx.Logger.BeginScope("{FeatureName}", nameof(OperationLogging)))
                 {
-                    operation.Telemetry.Success = false;
-                    operation.AppendToRequestLog(ctx.Events, ctx.PartitionId);
-                    await f(ctx);
-                    operation.Telemetry.Success = true;
+                    using (var operation = telemetryClient.StartOperation<RequestTelemetry>("ProcessEvents"))
+                    {
+                        operation.Telemetry.Success = false;
+                        operation.AppendToRequestLog(ctx.Events, ctx.PartitionId);
+                        await f(ctx);
+                        operation.Telemetry.Success = true;
+                    }
                 }
-                ctx.Logger.LogDebug($"{nameof(OperationLogging)} end");
             };
 
         public static Func<Func<EventContext, Task>, Func<EventContext, Task>> Retry(int exceptionDelaySeconds = 1)
@@ -91,44 +87,41 @@ namespace CMP.ServiceFabricReceiver.Common
 
         public static async Task Retry(Func<EventContext, Task> f, EventContext ctx, bool faulted = false, int exceptionDelaySeconds = 1)
         {
-            
-            ctx.Logger.LogDebug($"{nameof(Retry)} start");
+            using (ctx.Logger.BeginScope("{FeatureName} - Retry : {retry}", nameof(Retry), faulted))
+            {
+                try
+                {
+                    await f(ctx);
+                }
+                catch (Exception ex) when (faulted)
+                {
+                    ctx.Logger.LogError(ex, $"Failed to process events- Faulted : {faulted}. Cancelled : {ctx.CancellationToken.IsCancellationRequested}", new object[] { ctx.CancellationToken.IsCancellationRequested });
+                    ctx.CancellationToken.ThrowIfCancellationRequested();
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    ctx.Logger.LogError(ex, $"Failed to process events. Cancelled : {ctx.CancellationToken.IsCancellationRequested}", new object[] { ctx.CancellationToken.IsCancellationRequested });
+                    ctx.CancellationToken.ThrowIfCancellationRequested();
+                    if (exceptionDelaySeconds > 0)
+                        await Task.Delay(TimeSpan.FromSeconds(exceptionDelaySeconds), ctx.CancellationToken);
 
-            try
-            {
-                await f(ctx);
+                    await Retry(f, ctx, true, exceptionDelaySeconds);
+                }
             }
-            catch (Exception ex) when (faulted)
-            {
-                ctx.Logger.LogError(ex, $"Failed to process events- Faulted : {faulted}. Cancelled : {ctx.CancellationToken.IsCancellationRequested}", new object[] { ctx.CancellationToken.IsCancellationRequested });
-                ctx.CancellationToken.ThrowIfCancellationRequested();
-                throw;
-            }
-            catch (Exception ex)
-            {
-                ctx.Logger.LogError(ex, $"Failed to process events. Cancelled : {ctx.CancellationToken.IsCancellationRequested}", new object[] { ctx.CancellationToken.IsCancellationRequested });
-                ctx.CancellationToken.ThrowIfCancellationRequested();
-                if (exceptionDelaySeconds > 0)
-                    await Task.Delay(TimeSpan.FromSeconds(exceptionDelaySeconds), ctx.CancellationToken);
-
-                await Retry(f, ctx, true, exceptionDelaySeconds);
-            }
-            ctx.Logger.LogDebug($"{nameof(Retry)} end");
         }
 
         public static Func<Func<EventContext, Task>, Func<EventContext, Task>> Checkpointing()
             => f => async ctx =>
             {
-                ctx.Logger.LogDebug($"{nameof(Checkpointing)} start");
-                if (ctx.Events.Any())
+                using (ctx.Logger.BeginScope("{FeatureName}", nameof(Checkpointing)))
                 {
-
-                    ctx.CancellationToken.ThrowIfCancellationRequested();
-                    await ctx.Checkpoint(ctx.Events.Last());
+                    if (ctx.Events.Any())
+                    {
+                        ctx.CancellationToken.ThrowIfCancellationRequested();
+                        await ctx.Checkpoint(ctx.Events.Last());
+                    }
                 }
-
-                ctx.Logger.LogDebug($"{nameof(Checkpointing)} end");
             };
-
     }
 }
