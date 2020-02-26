@@ -62,9 +62,9 @@ namespace Stateless1
 
             var pipeline = Composition.Combine(
                                  Features.PartitionLogging(),
-                                 Features.Retry(),
                                  Features.OperationLogging(telemetryClient),
                                  Features.Logging(),
+                                 Features.Retry(),
                                  Features.Handling(x => EventHandler.Handle("Sample", table, x.Events)),
                                  Features.Checkpointing()
                                  );
