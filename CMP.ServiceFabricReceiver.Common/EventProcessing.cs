@@ -34,8 +34,12 @@ namespace CMP.ServiceFabricReceiver.Common
             {
                 ctx.Logger.LogDebug($"{nameof(Handling)} start");
 
+                ctx.CancellationToken.ThrowIfCancellationRequested();
                 await handle(ctx);
+                ctx.CancellationToken.ThrowIfCancellationRequested();
                 await f(ctx);
+                ctx.CancellationToken.ThrowIfCancellationRequested();
+
                 ctx.Logger.LogDebug($"{nameof(Handling)} end");
             };
 
@@ -62,9 +66,7 @@ namespace CMP.ServiceFabricReceiver.Common
 
              if (!ctx.Events.Any()) ctx.Logger.LogDebug("Empty event list", Array.Empty<object>());
 
-             ctx.CancellationToken.ThrowIfCancellationRequested();
              await f(ctx);
-             ctx.CancellationToken.ThrowIfCancellationRequested();
 
              ctx.Logger.LogDebug($"{nameof(Logging)} end");
          };

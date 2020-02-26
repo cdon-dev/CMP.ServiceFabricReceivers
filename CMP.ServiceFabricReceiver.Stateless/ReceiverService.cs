@@ -1,11 +1,8 @@
 ﻿using CMP.ServiceFabricReceiver.Common;
-using Microsoft.ApplicationInsights;
-using Microsoft.Azure.EventHubs;
 using Microsoft.Azure.EventHubs.Processor;
 using Microsoft.Extensions.Logging;
 using Microsoft.ServiceFabric.Services.Runtime;
 using System;
-using System.Collections.Generic;
 using System.Fabric;
 using System.Threading;
 using System.Threading.Tasks;

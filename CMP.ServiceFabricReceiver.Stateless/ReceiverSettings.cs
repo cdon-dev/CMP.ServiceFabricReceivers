@@ -10,7 +10,6 @@ namespace CMP.ServiceFabricRecevier.Stateless
         public string EventHubConnectionString { get; set; }
         public string StorageConnectionString { get; set; }
         public string LeaseContainerName { get; set; }
-        public bool UseOperationLogging { get; set; }
 
         public EventProcessorHost ToHost(string nodeName = "unknown") 
             => new EventProcessorHost(
