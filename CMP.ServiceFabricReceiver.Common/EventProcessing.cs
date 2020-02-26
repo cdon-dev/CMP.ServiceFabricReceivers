@@ -32,15 +32,14 @@ namespace CMP.ServiceFabricReceiver.Common
         public static Func<Func<EventContext, Task>, Func<EventContext, Task>> Handling(Func<EventContext, Task> handle)
             => f => async ctx =>
             {
-                ctx.Logger.LogDebug($"{nameof(Handling)} start");
-
-                ctx.CancellationToken.ThrowIfCancellationRequested();
-                await handle(ctx);
-                ctx.CancellationToken.ThrowIfCancellationRequested();
-                await f(ctx);
-                ctx.CancellationToken.ThrowIfCancellationRequested();
-
-                ctx.Logger.LogDebug($"{nameof(Handling)} end");
+                using (ctx.Logger.BeginScope("{FeatureName}", nameof(Handling)))
+                {
+                    ctx.CancellationToken.ThrowIfCancellationRequested();
+                    await handle(ctx);
+                    ctx.CancellationToken.ThrowIfCancellationRequested();
+                    await f(ctx);
+                    ctx.CancellationToken.ThrowIfCancellationRequested();
+                }
             };
 
         public static Func<Func<EventContext, Task>, Func<EventContext, Task>> PartitionLogging()
@@ -121,6 +120,7 @@ namespace CMP.ServiceFabricReceiver.Common
                         ctx.CancellationToken.ThrowIfCancellationRequested();
                         await ctx.Checkpoint(ctx.Events.Last());
                     }
+                    await f(ctx);
                 }
             };
     }
