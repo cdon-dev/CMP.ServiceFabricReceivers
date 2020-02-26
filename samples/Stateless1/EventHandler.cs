@@ -4,6 +4,7 @@ using CMP.ServiceFabricReceiver.Common;
 using CMP.ServiceFabricReceiver.Common.Testing;
 using System;
 using Microsoft.WindowsAzure.Storage.Table;
+using System.Linq;
 
 namespace Stateless1
 {
@@ -11,14 +12,15 @@ namespace Stateless1
     {
         public static async Task Handle(string node, CloudTable table, params EventData[] events)
         {
-            foreach (var item in events)
+            foreach (var @event in events
+                .FilteredOnEvents(Events.GetEventsFromTypes(typeof(TestEvent)))
+                .Cast<TestEvent>())
             {
-                var @event = item.ToEvent(typeof(TestEvent)) as TestEvent;
                 var insertOrMergeOperation = TableOperation.InsertOrMerge(new TestEntity
                 {
                     PartitionKey = @event.SourceId,
-                    RowKey = $"{@event.Count}-{Guid.NewGuid()}",
-                    Partition = item.SystemProperties.PartitionKey,
+                    RowKey = @event.Meta.ContainsKey("eventid") ? @event.Meta["eventid"] : Guid.NewGuid().ToString(),
+                    Partition = @event.Meta.ContainsKey("partitionkey") ? @event.Meta["partitionkey"] : Guid.NewGuid().ToString(),
                     Message = @event.Message,
                     Count = @event.Count
                 });
