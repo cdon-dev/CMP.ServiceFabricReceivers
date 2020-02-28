@@ -62,7 +62,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
             try
             {
                 await _switch(cancellationToken);
-                await RunAsync(_host, _logger, _options, cancellationToken, _serviceEventSource, Context.PartitionId.ToString() ,_f);
+                await RunAsync(_host, _logger, _options, cancellationToken, _serviceEventSource, Context.PartitionId.ToString(), _f);
             }
             catch (FabricTransientException e)
             {
@@ -78,16 +78,11 @@ namespace CMP.ServiceFabricRecevier.Stateless
             Action<string, object[]> serviceEventSource,
             string partition,
             Func<string, Func<EventContext, Task>> f)
-            => Execution.ExecuteAsync(
-                cancellationToken,
-                logger,
-                serviceEventSource,
-                nameof(ReceiverService),
-                partition,
-                ct => ReceiverExceptions.ExecuteAsync(ct, logger, "none", t =>
-                            host.RegisterEventProcessorFactoryAsync(new EventProcessorFactory(logger, t, f), options)
-                        )
-                );
+            => Composition.Combine(
+                    Features.Execution(logger, serviceEventSource, nameof(ReceiverService), partition),
+                    Features.ReceiverExceptions(logger, partition),
+                    Features.Run(ct => host.RegisterEventProcessorFactoryAsync(new EventProcessorFactory(logger, ct, f), options))
+                    )(cancellationToken);
 
         protected override async Task OnCloseAsync(CancellationToken cancellationToken)
         {
@@ -95,6 +90,25 @@ namespace CMP.ServiceFabricRecevier.Stateless
             await _host.UnregisterEventProcessorAsync();
             await base.OnCloseAsync(cancellationToken);
         }
+    }
 
+    public static class Features
+    {
+        public static Func<Func<CancellationToken, Task>, Func<CancellationToken, Task>> Execution(
+            ILogger logger, Action<string, object[]> serviceEventSource,
+            string serviceName,
+            string partition)
+            => f => ct => ServiceFabricReceiver.Common.Execution.ExecuteAsync(ct, logger, serviceEventSource, serviceName, partition, f);
+
+        public static Func<Func<CancellationToken, Task>, Func<CancellationToken, Task>> ReceiverExceptions(
+            ILogger logger, string partition)
+            => f => ct => Stateless.ReceiverExceptions.ExecuteAsync(ct, logger, partition, f);
+
+        public static Func<Func<CancellationToken, Task>, Func<CancellationToken, Task>> Run(Func<CancellationToken, Task> r)
+            => f => async ct =>
+            {
+                await r(ct);
+                await f(ct);
+            };
     }
 }

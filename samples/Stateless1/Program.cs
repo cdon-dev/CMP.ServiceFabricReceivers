@@ -61,12 +61,12 @@ namespace Stateless1
             };
 
             var pipeline = Composition.Combine(
-                                 Features.PartitionLogging(),
-                                 Features.OperationLogging(telemetryClient),
-                                 Features.Logging(),
-                                 Features.Retry(),
-                                 Features.Handling(x => EventHandler.Handle("Sample", table, x.Events)),
-                                 Features.Checkpointing()
+                                 CMP.ServiceFabricReceiver.Common.Features.PartitionLogging(),
+                                 CMP.ServiceFabricReceiver.Common.Features.OperationLogging(telemetryClient),
+                                 CMP.ServiceFabricReceiver.Common.Features.Logging(),
+                                 CMP.ServiceFabricReceiver.Common.Features.Retry(),
+                                 CMP.ServiceFabricReceiver.Common.Features.Handling(x => EventHandler.Handle("Sample", table, x.Events)),
+                                 CMP.ServiceFabricReceiver.Common.Features.Checkpointing()
                                  );
 
             var isInCluster = PlatformServices.Default.Application.ApplicationBasePath.Contains(".Code.");
