@@ -24,7 +24,12 @@ namespace Stateless1
         /// </summary>
         private static void Main(string[] args)
         {
-            var telemetryClient = new TelemetryClient(TelemetryConfiguration.CreateDefault());
+            var telemetryClient = new TelemetryClient(TelemetryConfiguration.CreateDefault()
+                .Tap(x =>
+                {
+                    if (args.Length > 1)
+                        x.InstrumentationKey = args.Last();
+                }));
 
             Log.Logger = new LoggerConfiguration()
                .WriteTo.ApplicationInsights(telemetryClient, TelemetryConverter.Traces, Serilog.Events.LogEventLevel.Debug)
@@ -73,11 +78,13 @@ namespace Stateless1
 
             if (!isInCluster)
             {
+                logger.LogInformation("Running in Process. Application insights key set : {instrumentationKeySet}", string.IsNullOrWhiteSpace(telemetryClient.InstrumentationKey));
+
                 ReceiverService
-                    .RunAsync(settings.ToHost(), logger, options, CancellationToken.None, (s, o) => { }, "none" , partitionId => ctx => pipeline(ctx))
+                    .RunAsync(settings.ToHost(), logger, options, CancellationToken.None, (s, o) => { }, "none", partitionId => ctx => pipeline(ctx))
                     .GetAwaiter()
                     .GetResult();
-                
+
                 Thread.Sleep(Timeout.Infinite);
             }
 
