@@ -1,4 +1,5 @@
-﻿using Microsoft.Azure.EventHubs;
+﻿using CMP.ServiceFabricReceiver.Common;
+using Microsoft.Azure.EventHubs;
 using Microsoft.Azure.EventHubs.Processor;
 using Microsoft.Extensions.Logging;
 using System;
@@ -7,6 +8,7 @@ using System.Threading.Tasks;
 
 namespace CMP.ServiceFabricRecevier.Stateless
 {
+
     public static class ReceiverExceptions
     {
         public static async Task ExecuteAsync(

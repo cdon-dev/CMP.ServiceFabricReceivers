@@ -1,12 +1,8 @@
 ﻿using CMP.ServiceFabricReceiver.Common;
-using Microsoft.ApplicationInsights;
-using Microsoft.ApplicationInsights.DataContracts;
-using Microsoft.Azure.EventHubs;
 using Microsoft.Azure.EventHubs.Processor;
 using Microsoft.Extensions.Logging;
 using Microsoft.ServiceFabric.Services.Runtime;
 using System;
-using System.Collections.Generic;
 using System.Fabric;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,32 +12,27 @@ namespace CMP.ServiceFabricRecevier.Stateless
     public class ReceiverService : StatelessService
     {
         private readonly ILogger _logger;
-        private readonly TelemetryClient _telemetryClient;
         private readonly ReceiverSettings _settings;
         private readonly Action<string, object[]> _serviceEventSource;
-        private readonly EventHandlerCreator _eventHandlerCreator;
+        private readonly Func<string, Func<EventContext, Task>> _f;
         private readonly Func<CancellationToken, Task> _switch;
         private readonly EventProcessorOptions _options;
         private readonly EventProcessorHost _host;
 
-        public delegate Func<IReadOnlyCollection<EventData>, CancellationToken, Task> EventHandlerCreator(string partitionId);
-
         public ReceiverService(
             StatelessServiceContext serviceContext,
             ILogger logger,
-            TelemetryClient telemetryClient,
             ReceiverSettings settings,
             Action<string, object[]> serviceEventSource,
-            EventHandlerCreator eventHandlerCreator,
             Func<CancellationToken, Task> @switch,
+            Func<string, Func<EventContext, Task>> f,
             EventProcessorOptions options)
              : base(serviceContext)
         {
             _logger = logger;
-            _telemetryClient = telemetryClient;
             _settings = settings;
             _serviceEventSource = serviceEventSource;
-            _eventHandlerCreator = eventHandlerCreator;
+            _f = f;
             _switch = @switch;
             _options = options;
 
@@ -70,34 +61,54 @@ namespace CMP.ServiceFabricRecevier.Stateless
         {
             try
             {
-                await Execution.ExecuteAsync(cancellationToken,
-                    _logger, _serviceEventSource,
-                    nameof(ReceiverService), Context.PartitionId.ToString(),
-                    ct => ReceiverExceptions.ExecuteAsync(ct, _logger, Context.PartitionId.ToString(),
-                    async token =>
-                    {
-                        await _switch(token);
-                        await _host.RegisterEventProcessorFactoryAsync(
-                            new EventProcessorFactory(
-                                _telemetryClient.UseOperationLogging(_settings.UseOperationLogging),
-                                _logger, 
-                                token, 
-                                _serviceEventSource, 
-                                partitionId => _eventHandlerCreator(partitionId)), 
-                            _options);
-                    }));
+                await Execution.ExecuteAsync(cancellationToken, _logger, _serviceEventSource, nameof(ReceiverService), Context.PartitionId.ToString(), _switch);
+                await RunAsync(_host, _logger, _options, cancellationToken, _serviceEventSource, Context.PartitionId.ToString(), _f);
             }
             catch (FabricTransientException e)
             {
                 _logger.LogError(e, nameof(ReceiverService) + "Exception .RunAsync for {PartitionId}", Context.PartitionId);
             }
         }
+
+        public static Task RunAsync(
+            EventProcessorHost host,
+            ILogger logger,
+            EventProcessorOptions options,
+            CancellationToken cancellationToken,
+            Action<string, object[]> serviceEventSource,
+            string partition,
+            Func<string, Func<EventContext, Task>> f)
+            => Composition.Combine(
+                    Features.Execution(logger, serviceEventSource, nameof(ReceiverService), partition),
+                    Features.ReceiverExceptions(logger, partition),
+                    Features.Run(ct => host.RegisterEventProcessorFactoryAsync(new EventProcessorFactory(logger, ct, f), options))
+                    )(cancellationToken);
+
         protected override async Task OnCloseAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation(nameof(OnCloseAsync));
             await _host.UnregisterEventProcessorAsync();
             await base.OnCloseAsync(cancellationToken);
         }
+    }
 
+    public static class Features
+    {
+        public static Func<Func<CancellationToken, Task>, Func<CancellationToken, Task>> Execution(
+            ILogger logger, Action<string, object[]> serviceEventSource,
+            string serviceName,
+            string partition)
+            => f => ct => ServiceFabricReceiver.Common.Execution.ExecuteAsync(ct, logger, serviceEventSource, serviceName, partition, f);
+
+        public static Func<Func<CancellationToken, Task>, Func<CancellationToken, Task>> ReceiverExceptions(
+            ILogger logger, string partition)
+            => f => ct => Stateless.ReceiverExceptions.ExecuteAsync(ct, logger, partition, f);
+
+        public static Func<Func<CancellationToken, Task>, Func<CancellationToken, Task>> Run(Func<CancellationToken, Task> r)
+            => f => async ct =>
+            {
+                await r(ct);
+                await f(ct);
+            };
     }
 }

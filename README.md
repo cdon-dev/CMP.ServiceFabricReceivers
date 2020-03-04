@@ -15,23 +15,29 @@ The approch and signature is the same in both cases, it only differs in servicet
 
 ### Sample
 
+          var pipeline = Composition.Combine(
+                                 CMP.ServiceFabricReceiver.Common.Features.PartitionLogging(),
+                                 CMP.ServiceFabricReceiver.Common.Features.OperationLogging(telemetryClient),
+                                 CMP.ServiceFabricReceiver.Common.Features.Logging(),
+                                 CMP.ServiceFabricReceiver.Common.Features.Retry(),
+                                 CMP.ServiceFabricReceiver.Common.Features.Handling(x => EventHandler.Handle("Sample", table, x.Events)),
+                                 CMP.ServiceFabricReceiver.Common.Features.Checkpointing()
+                                 );
+
+
+
                 ServiceRuntime.RegisterServiceAsync(
-                    "ReceiverServiceType",
+                    "ReceiverServiceType2",
                     context =>
                         new SampleService(
                          context,
                          logger,
-                         new TelemetryClient(TelemetryConfiguration.Active),
-                         new ReceiverOptions()
-                         {
-                             ConnectionString = "",
-                             ConsumerGroup = "sf"
-                         },
+                         settings,
                          ServiceEventSource.Current.Message,
-                         (partitionId) => 
-                            (events, ct) => EventHandler.Handle(events.ToArray()),
-                         ct => Task.CompletedTask
-                   )).GetAwaiter().GetResult();
+                         ct => Task.CompletedTask,
+                         partitionId => ctx => pipeline(ctx),
+                         options)
+                        ).GetAwaiter().GetResult();
 
 The samples folder includes a publisher that just pushes test event to a given hub.
 

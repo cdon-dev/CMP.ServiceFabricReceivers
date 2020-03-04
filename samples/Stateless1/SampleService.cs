@@ -1,10 +1,8 @@
-﻿using CMP.ServiceFabricRecevier.Stateless;
-using Microsoft.ApplicationInsights;
-using Microsoft.Azure.EventHubs;
+﻿using CMP.ServiceFabricReceiver.Common;
+using CMP.ServiceFabricRecevier.Stateless;
 using Microsoft.Azure.EventHubs.Processor;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
 using System.Fabric;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,16 +11,13 @@ namespace Stateless1
 {
     public class SampleService : ReceiverService
     {
-        public SampleService(
-            StatelessServiceContext context, 
-            ILogger logger, 
-            TelemetryClient telemetryClient, 
-            ReceiverSettings settings, 
-            Action<string, object[]> serviceEventSource, 
-            EventHandlerCreator eventHandlerCreator,
-            Func<CancellationToken, Task> @switch, 
-            EventProcessorOptions options)
-            : base(context, logger, telemetryClient, settings, serviceEventSource, eventHandlerCreator, @switch, options)
+            public SampleService(StatelessServiceContext serviceContext, 
+            ILogger logger, ReceiverSettings settings, 
+            Action<string, object[]> serviceEventSource,
+            Func<CancellationToken, Task> @switch,
+            Func<string, Func<EventContext, Task>> f,
+            EventProcessorOptions options) 
+            : base(serviceContext, logger, settings, serviceEventSource, @switch, f, options)
         {
         }
     }

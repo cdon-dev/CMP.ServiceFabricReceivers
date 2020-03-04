@@ -3,16 +3,18 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using CMP.ServiceFabricReceiver.Common;
 using CMP.ServiceFabricRecevier.Stateless;
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Azure.EventHubs;
+using Microsoft.Azure.EventHubs.Processor;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.PlatformAbstractions;
 using Microsoft.ServiceFabric.Services.Runtime;
 using Microsoft.WindowsAzure.Storage;
 using Serilog;
 using Serilog.Extensions.Logging;
-
 namespace Stateless1
 {
     internal static class Program
@@ -20,13 +22,22 @@ namespace Stateless1
         /// <summary>
         /// This is the entry point of the service host process.
         /// </summary>
-        private static void Main()
+        private static void Main(string[] args)
         {
+            var telemetryClient = new TelemetryClient(TelemetryConfiguration.CreateDefault()
+                .Tap(x =>
+                {
+                    if (args.Length > 1)
+                        x.InstrumentationKey = args.Last();
+                }));
 
             Log.Logger = new LoggerConfiguration()
-               .WriteTo.ApplicationInsights(TelemetryConfiguration.Active, TelemetryConverter.Traces, Serilog.Events.LogEventLevel.Debug)
-               .WriteTo.AzureTableStorage(CloudStorageAccount.DevelopmentStorageAccount, Serilog.Events.LogEventLevel.Warning)
+               .WriteTo.ApplicationInsights(telemetryClient, TelemetryConverter.Traces, Serilog.Events.LogEventLevel.Debug)
+               //.WriteTo.AzureTableStorage(CloudStorageAccount.DevelopmentStorageAccount, Serilog.Events.LogEventLevel.Warning)
+               .WriteTo.ColoredConsole(Serilog.Events.LogEventLevel.Debug, outputTemplate:
+                    "[{Timestamp:HH:mm:ss} {Level:u3}] {PartitionId} {Scope:lj} {Message:lj}{NewLine}{Exception}")
                .MinimumLevel.Debug()
+               .Enrich.FromLogContext()
                .CreateLogger();
 
             var logger = new SerilogLoggerProvider(Log.Logger, true)
@@ -36,39 +47,61 @@ namespace Stateless1
             var table = storageAccount.CreateCloudTableClient().GetTableReference("receiversample");
             table.CreateIfNotExistsAsync().GetAwaiter().GetResult();
 
+            var settings = new ReceiverSettings()
+            {
+                EventHubConnectionString = args.First(),
+                EventHubPath = "sample",
+                StorageConnectionString = "UseDevelopmentStorage=true",
+                ConsumerGroup = "sf",
+                LeaseContainerName = "leases"
+            };
+
+            var options = new EventProcessorOptions
+            {
+                InitialOffsetProvider = partition =>
+                {
+                    logger.LogWarning("InitialOffsetProvider called for {partition}", partition);
+                    return EventPosition.FromStart();
+                }
+            };
+
+            var pipeline = Composition.Combine(
+                                 CMP.ServiceFabricReceiver.Common.Features.PartitionLogging(),
+                                 CMP.ServiceFabricReceiver.Common.Features.OperationLogging(telemetryClient),
+                                 CMP.ServiceFabricReceiver.Common.Features.Logging(),
+                                 CMP.ServiceFabricReceiver.Common.Features.Retry(),
+                                 CMP.ServiceFabricReceiver.Common.Features.Handling(x => EventHandler.Handle("Sample", table, x.Events)),
+                                 CMP.ServiceFabricReceiver.Common.Features.Checkpointing()
+                                 );
+
+            var isInCluster = PlatformServices.Default.Application.ApplicationBasePath.Contains(".Code.");
+
+            if (!isInCluster)
+            {
+                logger.LogInformation("Running in Process. Application insights key set : {instrumentationKeySet}", string.IsNullOrWhiteSpace(telemetryClient.InstrumentationKey));
+
+                ReceiverService
+                    .RunAsync(settings.ToHost(), logger, options, CancellationToken.None, (s, o) => { }, "none", partitionId => ctx => pipeline(ctx))
+                    .GetAwaiter()
+                    .GetResult();
+
+                Thread.Sleep(Timeout.Infinite);
+            }
+
             try
             {
-                // The ServiceManifest.XML file defines one or more service type names.
-                // Registering a service maps a service type name to a .NET type.
-                // When Service Fabric creates an instance of this service type,
-                // an instance of the class is created in this host process.
-
                 ServiceRuntime.RegisterServiceAsync(
                     "ReceiverServiceType2",
                     context =>
                         new SampleService(
                          context,
                          logger,
-                         new TelemetryClient(TelemetryConfiguration.Active),
-                         new ReceiverSettings()
-                         {
-                             EventHubConnectionString = "",
-                             EventHubPath = "sample",
-                             StorageConnectionString = "UseDevelopmentStorage=true",
-                             ConsumerGroup = "sf",
-                             LeaseContainerName = "leases"
-                         },
+                         settings,
                          ServiceEventSource.Current.Message,
-                         (partitionId) => 
-                            (events, ct) => EventHandler.Handle(context.NodeContext.NodeName, table, events.ToArray()),
                          ct => Task.CompletedTask,
-                         new Microsoft.Azure.EventHubs.Processor.EventProcessorOptions {
-                             InitialOffsetProvider = partition => {
-                                 logger.LogWarning("InitialOffsetProvider called for {partition}", partition);
-                                 return EventPosition.FromStart();
-                             }
-                         }
-                   )).GetAwaiter().GetResult();
+                         partitionId => ctx => pipeline(ctx),
+                         options)
+                        ).GetAwaiter().GetResult();
 
                 ServiceEventSource.Current.ServiceTypeRegistered(Process.GetCurrentProcess().Id, $"{typeof(ReceiverService).Name}2");
 

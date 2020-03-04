@@ -35,7 +35,12 @@ namespace CMP.ServiceFabricReceiver.Common
                 .Select(x => x.ToEvent(knownEvents[x.Properties[typePropertyName].ToString()]));
 
         public static IEvent ToEvent(this EventData eventData, Type type)
-         => DeserializeJsonAs<IEvent>(eventData, type);
+         => DeserializeJsonAs<IEvent>(eventData, type)
+            .Tap(x => eventData.SystemProperties.ForEach(sp =>
+            {
+                if (!x.Meta.ContainsKey(sp.Key.ToLower()))
+                    x.Meta.Add(sp.Key.ToLower(), sp.Value.ToString());
+            }));
 
         public static T DeserializeJsonAs<T>(this EventData eventData, Type type)
             where T : class
