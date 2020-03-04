@@ -61,7 +61,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
         {
             try
             {
-                await _switch(cancellationToken);
+                await Execution.ExecuteAsync(cancellationToken, _logger, _serviceEventSource, nameof(ReceiverService), Context.PartitionId.ToString(), _switch);
                 await RunAsync(_host, _logger, _options, cancellationToken, _serviceEventSource, Context.PartitionId.ToString(), _f);
             }
             catch (FabricTransientException e)
