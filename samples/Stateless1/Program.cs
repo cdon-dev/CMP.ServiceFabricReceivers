@@ -79,9 +79,8 @@ namespace Stateless1
             if (!isInCluster)
             {
                 logger.LogInformation("Running in Process. Application insights key set : {instrumentationKeySet}", string.IsNullOrWhiteSpace(telemetryClient.InstrumentationKey));
-
-                ReceiverService
-                    .RunAsync(settings.ToHost(), logger, options, CancellationToken.None, (s, o) => { }, "none", partitionId => ctx => pipeline(ctx))
+                    settings.ToHost()
+                    .RunAsync(logger, options, CancellationToken.None, (s, o) => { }, "none", partitionId => ctx => pipeline(ctx))
                     .GetAwaiter()
                     .GetResult();
 

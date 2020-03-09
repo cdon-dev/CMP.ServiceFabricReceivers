@@ -62,7 +62,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
             try
             {
                 await Execution.ExecuteAsync(cancellationToken, _logger, _serviceEventSource, nameof(ReceiverService), Context.PartitionId.ToString(), _switch);
-                await RunAsync(_host, _logger, _options, cancellationToken, _serviceEventSource, Context.PartitionId.ToString(), _f);
+                await _host.RunAsync(_logger, _options, cancellationToken, _serviceEventSource, Context.PartitionId.ToString(), _f);
             }
             catch (FabricTransientException e)
             {
@@ -70,19 +70,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
             }
         }
 
-        public static Task RunAsync(
-            EventProcessorHost host,
-            ILogger logger,
-            EventProcessorOptions options,
-            CancellationToken cancellationToken,
-            Action<string, object[]> serviceEventSource,
-            string partition,
-            Func<string, Func<EventContext, Task>> f)
-            => Composition.Combine(
-                    Features.Execution(logger, serviceEventSource, nameof(ReceiverService), partition),
-                    Features.ReceiverExceptions(logger, partition),
-                    Features.Run(ct => host.RegisterEventProcessorFactoryAsync(new EventProcessorFactory(logger, ct, f), options))
-                    )(cancellationToken);
+   
 
         protected override async Task OnCloseAsync(CancellationToken cancellationToken)
         {
