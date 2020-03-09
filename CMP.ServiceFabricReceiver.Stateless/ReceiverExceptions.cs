@@ -28,7 +28,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
                     "Receiver disconnected on partition {PartitionId}. " +
                     "Exception: {@Exception}, IsCancellationRequested: {IsCancellationRequested}",
                     partitionId, e, cancellationToken.IsCancellationRequested);
-                await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+                //await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
                 throw;
             }
             catch (LeaseLostException e)
@@ -38,7 +38,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
                     "Lease lost on partition {PartitionId}. " +
                     "Exception: {@Exception}, IsCancellationRequested: {IsCancellationRequested}",
                     partitionId, e, cancellationToken.IsCancellationRequested);
-                await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+                //await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
                 throw;
             }
 

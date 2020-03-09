@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <VersionPrefix>0.3.0</VersionPrefix>
+    <VersionPrefix>0.3.1</VersionPrefix>
     <VersionSuffix>alpha</VersionSuffix>
     <PackageId>CMP.ServiceFabricReceiver.Common</PackageId>
     <Authors>CDON</Authors>
@@ -16,10 +16,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.ApplicationInsights" Version="2.13.1" />
     <PackageReference Include="Microsoft.Azure.EventHubs" Version="4.1.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="2.2.0" />
-    <PackageReference Include="Microsoft.ApplicationInsights.ServiceFabric" Version="2.3.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.2" />
   </ItemGroup>
-
 
 </Project>
