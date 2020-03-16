@@ -9,21 +9,21 @@ namespace CMP.ServiceFabricRecevier.Stateless
 {
     public class EventProcessorFactory : IEventProcessorFactory
     {
-        private readonly ILogger _logger;
+        private readonly Func<string,ILogger> _loggerFactory;
         private readonly CancellationToken _cancellationToken;
         private readonly Func<string, Func<EventContext, Task>> f;
 
         public EventProcessorFactory(
-            ILogger logger,
+            Func<string, ILogger> loggerFactory,
             CancellationToken cancellationToken,
             Func<string, Func<EventContext, Task>> f)
         {
-            _logger = logger;
+            _loggerFactory = loggerFactory;
             _cancellationToken = cancellationToken;
             this.f = f;
         }
 
         public IEventProcessor CreateEventProcessor(PartitionContext context)
-         => new EventProcessor(_logger, _cancellationToken, f);
+         => new EventProcessor(_loggerFactory($"Processor({context.PartitionId})") , _cancellationToken, f);
     }
 }

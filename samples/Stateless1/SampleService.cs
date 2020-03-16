@@ -12,12 +12,12 @@ namespace Stateless1
     public class SampleService : ReceiverService
     {
             public SampleService(StatelessServiceContext serviceContext, 
-            ILogger logger, ReceiverSettings settings, 
+            Func<string, ILogger> loggerFactory, ReceiverSettings settings, 
             Action<string, object[]> serviceEventSource,
             Func<CancellationToken, Task> @switch,
             Func<string, Func<EventContext, Task>> f,
             EventProcessorOptions options) 
-            : base(serviceContext, logger, settings, serviceEventSource, @switch, f, options)
+            : base(serviceContext, loggerFactory, settings, serviceEventSource, @switch, f, options)
         {
         }
     }

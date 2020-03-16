@@ -40,8 +40,10 @@ namespace Stateless1
                .Enrich.FromLogContext()
                .CreateLogger();
 
-            var logger = new SerilogLoggerProvider(Log.Logger, true)
+            Microsoft.Extensions.Logging.ILogger loggerFactory(string category) =>
+                new SerilogLoggerProvider(Log.Logger, true)
                 .CreateLogger("Stateless-Sample");
+            var logger = loggerFactory("Program");
 
             var storageAccount = CloudStorageAccount.DevelopmentStorageAccount;
             var table = storageAccount.CreateCloudTableClient().GetTableReference("receiversample");
@@ -79,10 +81,10 @@ namespace Stateless1
             if (!isInCluster)
             {
                 logger.LogInformation("Running in Process. Application insights key set : {instrumentationKeySet}", string.IsNullOrWhiteSpace(telemetryClient.InstrumentationKey));
-                    settings.ToHost()
-                    .RunAsync(logger, options, CancellationToken.None, (s, o) => { }, "none", partitionId => ctx => pipeline(ctx))
-                    .GetAwaiter()
-                    .GetResult();
+                settings.ToHost()
+                .RunAsync(loggerFactory, options, CancellationToken.None, (s, o) => { }, "none", partitionId => ctx => pipeline(ctx))
+                .GetAwaiter()
+                .GetResult();
 
                 Thread.Sleep(Timeout.Infinite);
             }
@@ -94,7 +96,7 @@ namespace Stateless1
                     context =>
                         new SampleService(
                          context,
-                         logger,
+                         loggerFactory,
                          settings,
                          ServiceEventSource.Current.Message,
                          ct => Task.CompletedTask,
