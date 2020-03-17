@@ -13,7 +13,7 @@ in preview](https://www.nuget.org/packages/Microsoft.Azure.EventHubs.ServiceFabr
 
 The approch and signature is the same in both cases, it only differs in servicetype, configuration and the option type.
 
-### Sample
+### Stateless Sample
 
           var pipeline = Composition.Combine(
                                  CMP.ServiceFabricReceiver.Common.Features.PartitionLogging(),
@@ -38,6 +38,29 @@ The approch and signature is the same in both cases, it only differs in servicet
                          partitionId => ctx => pipeline(ctx),
                          options)
                         ).GetAwaiter().GetResult();
+
+#### Setup (stateless sample)
+
+The sample requires that you have an eventhub, a local storage and an application insights instance.
+
+To run the (stateless1) sample you simple run;
+
+```sh
+dotnet run "eventhubconnectionstring" "applicationinsightsinstrumentationkey"
+```
+
+*Note* don't forget to start the local storage emulator.
+
+You could also run this in a local cluster, using the "sample" service fabric project.
+
+The is also a publisher that sends test events to a event hub. To run the publisher use the following;
+
+```sh
+dotnet run "eventhubconnectionstringwithentitypath" 
+```
+That will send 1000 test events to the given entity(hub).
+
+#### Other samples
 
 The samples folder includes a publisher that just pushes test event to a given hub.
 
