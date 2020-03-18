@@ -94,7 +94,7 @@ namespace CMP.ServiceFabricReceiver.Common
                 }
                 catch (Exception ex) when (faulted)
                 {
-                    ctx.Logger.LogError(ex, "Failed to process events - IsRetry : {IsRetry}. Cancelled : {IsCancellationRequested}", ctx.CancellationToken.IsCancellationRequested);
+                    ctx.Logger.LogError(ex, "Failed to process events - IsRetry : {IsRetry}. Cancelled : {IsCancellationRequested}", faulted, ctx.CancellationToken.IsCancellationRequested);
                     ctx.CancellationToken.ThrowIfCancellationRequested();
                     throw;
                 }
