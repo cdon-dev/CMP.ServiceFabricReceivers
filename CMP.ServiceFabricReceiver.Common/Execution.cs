@@ -25,18 +25,18 @@ namespace CMP.ServiceFabricReceiver.Common
             {
                 if (e is OperationCanceledException)
                 {
-                    logger.LogError(e, serviceName + " RunAsync canceled. RunAsync for {PartitionId}", partitionId);
+                    logger.LogError(e, serviceName + " RunAsync canceled. RunAsync for {ServiceFabricPartitionId}", partitionId);
                     serviceEventSource($"{serviceName}.RunAsync for {partitionId} error {e}", new object[0]);
                     throw;
                 }
 
-                logger.LogError(e, serviceName + " Exception during shutdown. Exception of unexpected type .RunAsync for {PartitionId}", partitionId);
+                logger.LogError(e, serviceName + " Exception during shutdown. Exception of unexpected type .RunAsync for {ServiceFabricPartitionId}", partitionId);
                 serviceEventSource($"{serviceName}.RunAsync for {partitionId} error {e}", new object[0]);
                 cancellationToken.ThrowIfCancellationRequested();
             }
             catch (Exception e)
             {
-                logger.LogError(e, serviceName + ". RunAsync for {PartitionId}", partitionId);
+                logger.LogError(e, serviceName + ". RunAsync for {ServiceFabricPartitionId}", partitionId);
                 serviceEventSource($"{serviceName}.RunAsync for {partitionId} error {e}", new object[0]);
                 throw;
             }
