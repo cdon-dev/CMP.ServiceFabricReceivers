@@ -45,7 +45,7 @@ namespace CMP.ServiceFabricReceiver.Common
         public static Func<Func<EventContext, Task>, Func<EventContext, Task>> PartitionLogging()
          => f => async ctx =>
          {
-             using (ctx.Logger.BeginScope("Event hub partition : {PartitionId}", ctx.PartitionId))
+             using (ctx.Logger.BeginScope("{FeatureName} - {EventHubPartitionId}", nameof(PartitionLogging), ctx.PartitionId))
              {
                  await f(ctx);
              }
@@ -54,7 +54,7 @@ namespace CMP.ServiceFabricReceiver.Common
         public static Func<Func<EventContext, Task>, Func<EventContext, Task>> Logging()
          => f => async ctx =>
          {
-             using (ctx.Logger.BeginScope("{FeatureName} - Events ({eventCount}) - Cancelled : {cancelled}", nameof(Logging), ctx.Events.Length, ctx.CancellationToken.IsCancellationRequested))
+             using (ctx.Logger.BeginScope("{FeatureName} - Events ({EventCount}) - Cancelled : {IsCancellationRequested}", nameof(Logging), ctx.Events.Length, ctx.CancellationToken.IsCancellationRequested))
              {
                  const string name = "EventProcessor";
                  ctx.Logger.LogDebug($"{name}.ProcessEventsAsync for partition {ctx.PartitionId} got {ctx.Events.Count()} events",
@@ -86,7 +86,7 @@ namespace CMP.ServiceFabricReceiver.Common
 
         public static async Task Retry(Func<EventContext, Task> f, EventContext ctx, bool faulted = false, int exceptionDelaySeconds = 1)
         {
-            using (ctx.Logger.BeginScope("{FeatureName} - Retry : {retry}", nameof(Retry), faulted))
+            using (ctx.Logger.BeginScope("{FeatureName} - Retry : {IsRetry}", nameof(Retry), faulted))
             {
                 try
                 {
@@ -94,13 +94,13 @@ namespace CMP.ServiceFabricReceiver.Common
                 }
                 catch (Exception ex) when (faulted)
                 {
-                    ctx.Logger.LogError(ex, $"Failed to process events- Faulted : {faulted}. Cancelled : {ctx.CancellationToken.IsCancellationRequested}", new object[] { ctx.CancellationToken.IsCancellationRequested });
+                    ctx.Logger.LogError(ex, "Failed to process events - IsRetry : {IsRetry}. Cancelled : {IsCancellationRequested}", ctx.CancellationToken.IsCancellationRequested);
                     ctx.CancellationToken.ThrowIfCancellationRequested();
                     throw;
                 }
                 catch (Exception ex)
                 {
-                    ctx.Logger.LogError(ex, $"Failed to process events. Cancelled : {ctx.CancellationToken.IsCancellationRequested}", new object[] { ctx.CancellationToken.IsCancellationRequested });
+                    ctx.Logger.LogError(ex, "Failed to process events. Cancelled : {IsCancellationRequested}", ctx.CancellationToken.IsCancellationRequested);
                     ctx.CancellationToken.ThrowIfCancellationRequested();
                     if (exceptionDelaySeconds > 0)
                         await Task.Delay(TimeSpan.FromSeconds(exceptionDelaySeconds), ctx.CancellationToken);

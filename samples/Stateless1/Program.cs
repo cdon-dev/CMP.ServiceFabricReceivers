@@ -62,7 +62,7 @@ namespace Stateless1
             {
                 InitialOffsetProvider = partition =>
                 {
-                    logger.LogWarning("InitialOffsetProvider called for {partition}", partition);
+                    logger.LogWarning("InitialOffsetProvider called for {EventHubPartitionId}", partition);
                     return EventPosition.FromStart();
                 }
             };

@@ -69,7 +69,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
             }
             catch (FabricTransientException e)
             {
-                _logger.LogError(e, nameof(ReceiverService) + "Exception .RunAsync for {PartitionId}", Context.PartitionId);
+                _logger.LogError(e, nameof(ReceiverService) + "Exception .RunAsync for {ServiceFabricPartitionId}", Context.PartitionId);
             }
         }
 

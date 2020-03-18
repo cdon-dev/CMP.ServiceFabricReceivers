@@ -30,14 +30,14 @@ namespace CMP.ServiceFabricRecevier.Stateless
 
         public Task CloseAsync(PartitionContext context, CloseReason reason)
         {
-            _logger.LogInformation("EventProcessor.CloseAsync for {PartitionId} reason {1}", context.PartitionId, reason);
+            _logger.LogInformation("EventProcessor.CloseAsync for {EventHubPartitionId} reason {1}", context.PartitionId, reason);
             //_serviceEventSource("EventProcessor.CloseAsync for {0} reason {1}", new object[] { context.PartitionId, reason });
             return Task.CompletedTask;
         }
 
         public Task OpenAsync(PartitionContext context)
         {
-            _logger.LogInformation("EventProcessor.OpenAsync for {PartitionId}", context.PartitionId);
+            _logger.LogInformation("EventProcessor.OpenAsync for {EventHubPartitionId}", context.PartitionId);
             //_serviceEventSource("EventProcessor.OpenAsync for {0}", new[] { context.PartitionId });
             return Task.CompletedTask;
         }
@@ -47,18 +47,18 @@ namespace CMP.ServiceFabricRecevier.Stateless
             if (error is ReceiverDisconnectedException)
             {
                 _logger.LogInformation(
-                    "Receiver disconnected on partition {PartitionId}. Exception: {@Exception}",
+                    "Receiver disconnected on partition {EventHubPartitionId}. Exception: {@Exception}",
                     context.PartitionId, error);
                 return Task.CompletedTask;
             }
             if (error is LeaseLostException)
             {
                 _logger.LogInformation(
-                    "Lease lost on partition {PartitionId}. Exception: {@Exception}",
+                    "Lease lost on partition {EventHubPartitionId}. Exception: {@Exception}",
                     context.PartitionId, error);
                 return Task.CompletedTask;
             }
-            _logger.LogError(error, "EventProcessor.ProcessErrorAsync for {PartitionId}", context.PartitionId);
+            _logger.LogError(error, "EventProcessor.ProcessErrorAsync for {EventHubPartitionId}", context.PartitionId);
             //_serviceEventSource("EventProcessor.ProcessErrorAsync for {0} error {1}", new object[] { context.PartitionId, error });
             return Task.CompletedTask;
         }
