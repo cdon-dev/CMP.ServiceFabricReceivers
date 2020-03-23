@@ -11,6 +11,16 @@ namespace CMP.ServiceFabricRecevier.Stateless
     {
         public static Task RunAsync(
             this EventProcessorHost host,
+            ILogger logger,
+            EventProcessorOptions options,
+            CancellationToken cancellationToken,
+            Action<string, object[]> serviceEventSource,
+            string serviceFabricPartition,
+            Func<string, Func<EventContext, Task>> f)
+             => RunAsync(host, _ => logger, options, cancellationToken, serviceEventSource, serviceFabricPartition, f);
+
+        public static Task RunAsync(
+            this EventProcessorHost host,
             Func<string, ILogger> loggerFactory,
             EventProcessorOptions options,
             CancellationToken cancellationToken,
