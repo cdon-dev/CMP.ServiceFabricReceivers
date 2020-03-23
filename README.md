@@ -51,7 +51,24 @@ Note that the `Func<string, Func<IReadOnlyCollection<EventData>, CancellationTok
 The real event handling function that is returned in the end, e.g. `(events, ct) => EventHandler.Handle(events.ToArray())`, will be created every time a batch of events comes in from EventHubs. This means that **no state** is maintained between the differnet executions of the function.
 
 
+### Monitoring
 
+With the feature "OperationLogging" that enablas a custom request log to application insights, monitoring could be done using the following AI query.
 
+```sql
+requests
+| where cloud_RoleName == 'name of receiver'
+| where success == true
+| summarize sum(todouble(customDimensions.EventCount)) by bin(timestamp, 10m), tostring(customDimensions.EventHubPartitionId)
+| render timechart"
+```
 
+If the request log is found to "noicy", traces could also be used.
+
+```sql
+traces
+| where cloud_RoleName == 'name of receiver'
+| summarize sum(todouble(customDimensions.EventCount)) by bin(timestamp, 10m), tostring(customDimensions.EventHubPartitionId)
+| render timechart
+```
 

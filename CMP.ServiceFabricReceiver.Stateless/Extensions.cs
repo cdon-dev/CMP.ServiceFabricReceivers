@@ -15,12 +15,25 @@ namespace CMP.ServiceFabricRecevier.Stateless
             EventProcessorOptions options,
             CancellationToken cancellationToken,
             Action<string, object[]> serviceEventSource,
-            string partition,
+            string serviceFabricPartition,
             Func<string, Func<EventContext, Task>> f)
-            => Composition.Combine(
-               Features.Execution(logger, serviceEventSource, nameof(ReceiverService), partition),
-               Features.ReceiverExceptions(logger, partition),
-               Features.Run(ct => host.RegisterEventProcessorFactoryAsync(new EventProcessorFactory(logger, ct, f), options))
-               )(cancellationToken);
+             => RunAsync(host, _ => logger, options, cancellationToken, serviceEventSource, serviceFabricPartition, f);
+
+        public static Task RunAsync(
+            this EventProcessorHost host,
+            Func<string, ILogger> loggerFactory,
+            EventProcessorOptions options,
+            CancellationToken cancellationToken,
+            Action<string, object[]> serviceEventSource,
+            string serviceFabricPartition,
+            Func<string, Func<EventContext, Task>> f)
+        {
+            var logger = loggerFactory($"{host.HostName}.{nameof(RunAsync)}.{serviceFabricPartition}");
+            return Composition.Combine(
+                   Features.Execution(logger, serviceEventSource, nameof(ReceiverService), serviceFabricPartition),
+                   Features.ReceiverExceptions(logger, serviceFabricPartition),
+                   Features.Run(ct => host.RegisterEventProcessorFactoryAsync(new EventProcessorFactory(loggerFactory, ct, f), options))
+                   )(cancellationToken);
+        }
     }
 }

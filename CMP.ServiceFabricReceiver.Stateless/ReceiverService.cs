@@ -11,6 +11,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
 {
     public class ReceiverService : StatelessService
     {
+        private readonly Func<string,ILogger> _loggerFactory;
         private readonly ILogger _logger;
         private readonly ReceiverSettings _settings;
         private readonly Action<string, object[]> _serviceEventSource;
@@ -21,7 +22,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
 
         public ReceiverService(
             StatelessServiceContext serviceContext,
-            ILogger logger,
+            Func<string,ILogger> loggerFactory,
             ReceiverSettings settings,
             Action<string, object[]> serviceEventSource,
             Func<CancellationToken, Task> @switch,
@@ -29,7 +30,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
             EventProcessorOptions options)
              : base(serviceContext)
         {
-            _logger = logger;
+            _loggerFactory = loggerFactory;
             _settings = settings;
             _serviceEventSource = serviceEventSource;
             _f = f;
@@ -43,6 +44,8 @@ namespace CMP.ServiceFabricRecevier.Stateless
                 _settings.EventHubConnectionString,
                 _settings.StorageConnectionString,
                 _settings.LeaseContainerName);
+
+            _logger = loggerFactory(nameof(ReceiverService));
         }
 
         protected override Task OnOpenAsync(CancellationToken cancellationToken)
@@ -62,11 +65,11 @@ namespace CMP.ServiceFabricRecevier.Stateless
             try
             {
                 await Execution.ExecuteAsync(cancellationToken, _logger, _serviceEventSource, nameof(ReceiverService), Context.PartitionId.ToString(), _switch);
-                await _host.RunAsync(_logger, _options, cancellationToken, _serviceEventSource, Context.PartitionId.ToString(), _f);
+                await _host.RunAsync(_loggerFactory, _options, cancellationToken, _serviceEventSource, Context.PartitionId.ToString(), _f);
             }
             catch (FabricTransientException e)
             {
-                _logger.LogError(e, nameof(ReceiverService) + "Exception .RunAsync for {PartitionId}", Context.PartitionId);
+                _logger.LogError(e, nameof(ReceiverService) + "Exception .RunAsync for {ServiceFabricPartitionId}", Context.PartitionId);
             }
         }
 

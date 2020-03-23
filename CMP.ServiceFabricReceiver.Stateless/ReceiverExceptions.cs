@@ -25,7 +25,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
             {
                 logger.LogInformation($"Execution.ExecuteAsync error 1 {e.GetType().Name}");
                 logger.LogInformation(
-                    "Receiver disconnected on partition {PartitionId}. " +
+                    "Receiver disconnected on partition {ServiceFabricPartitionId}. " +
                     "Exception: {@Exception}, IsCancellationRequested: {IsCancellationRequested}",
                     partitionId, e, cancellationToken.IsCancellationRequested);
                 //await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
@@ -35,7 +35,7 @@ namespace CMP.ServiceFabricRecevier.Stateless
             {
                 logger.LogInformation($"Execution.ExecuteAsync error 2 {e.GetType().Name}");
                 logger.LogInformation(
-                    "Lease lost on partition {PartitionId}. " +
+                    "Lease lost on partition {ServiceFabricPartitionId}. " +
                     "Exception: {@Exception}, IsCancellationRequested: {IsCancellationRequested}",
                     partitionId, e, cancellationToken.IsCancellationRequested);
                 //await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
